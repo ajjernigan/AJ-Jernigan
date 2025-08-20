@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Page Editor - AJ Jernigan</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <header>
+    <h1 id="pageTitle">Editing Page: </h1>
+    <button id="logoutBtn">Logout</button>
+  </header>
+
+  <main>
+    <textarea id="editorArea" rows="20" cols="80"></textarea>
+    <button id="saveBtn">Save</button>
+    <p id="saveStatus"></p>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
+      authDomain: "aj-jernigan-site.firebaseapp.com",
+      projectId: "aj-jernigan-site",
+      storageBucket: "aj-jernigan-site.appspot.com",
+      messagingSenderId: "823081137921",
+      appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const params = new URLSearchParams(window.location.search);
+    const page = params.get("page") || "index";
+
+    const pageTitle = document.getElementById("pageTitle");
+    const editorArea = document.getElementById("editorArea");
+    const saveBtn = document.getElementById("saveBtn");
+    const saveStatus = document.getElementById("saveStatus");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    pageTitle.textContent = `Editing Page: ${page}`;
+
+    onAuthStateChanged(auth, user => {
+      if (!user) window.location.href = "login.html";
+    });
+
+    async function loadContent() {
+      const docRef = doc(db, "edits", page);
+      const docSnap = await getDoc(docRef);
+      editorArea.value = docSnap.exists() ? docSnap.data().content || "" : "";
+    }
+
+    loadContent();
+
+    saveBtn.addEventListener("click", async () => {
+      const docRef = doc(db, "edits", page);
+      await setDoc(docRef, { content: editorArea.value });
+      saveStatus.textContent = "Changes saved!";
+    });
+
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "login.html";
+    });
+  </script>
+</body>
+</html>

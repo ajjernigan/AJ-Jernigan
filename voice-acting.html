@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Resume - AJ Jernigan</title>
+  <title>Voice Acting - AJ Jernigan</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+  <!-- Header / Navigation -->
   <header>
     <div class="logo">AJ Jernigan</div>
     <nav>
@@ -22,17 +23,20 @@
     </nav>
   </header>
 
-<main>
-  <section class="content">
-    <div class="container">
-    <h1>Voice Acting</h1>
-    <p>Audio clips or demo reels will go here.</p>
+  <!-- Main content -->
+  <main>
+    <section class="content">
+      <div class="container">
+        <h1>Voice Acting</h1>
+        <p>Audio clips or demo reels will go here.</p>
 
-    </div>
+        <!-- Firestore dynamic content -->
+        <div id="voiceActingContent"></div>
+      </div>
+    </section>
+  </main>
 
-  </section>
-</main>
-
+  <!-- Footer -->
   <footer>
     <div class="social-icons">
       <a href="#">Instagram</a>
@@ -41,5 +45,13 @@
     </div>
     <p>&copy; 2025 AJ Jernigan</p>
   </footer>
+
+  <!-- Load Firestore content -->
+  <script type="module">
+    import { loadPageContent } from "./js/content-loader.js";
+    // Firestore doc ID = "voice-acting"
+    // Section ID = "voiceActingContent"
+    loadPageContent("voice-acting", "voiceActingContent");
+  </script>
 </body>
 </html>

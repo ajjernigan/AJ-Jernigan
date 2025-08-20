@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+  <!-- Header / Navigation -->
   <header>
     <div class="logo">AJ Jernigan</div>
     <nav>
@@ -22,14 +23,20 @@
     </nav>
   </header>
 
+  <!-- Main content -->
   <main>
+    <!-- Original hero section remains intact -->
     <section class="hero">
       <h1>Welcome to AJ Jernigan's Portfolio</h1>
       <p>Actor • Voice Artist • Writer</p>
       <a class="button" href="contact.html">Contact AJ</a>
     </section>
+
+    <!-- Firestore dynamic content -->
+    <section id="homeContent"></section>
   </main>
 
+  <!-- Footer remains intact -->
   <footer>
     <div class="social-icons">
       <a href="#">Instagram</a>
@@ -38,5 +45,13 @@
     </div>
     <p>&copy; 2025 AJ Jernigan</p>
   </footer>
+
+  <!-- Load Firestore content at the end of body -->
+  <script type="module">
+    import { loadPageContent } from "./js/content-loader.js";
+    // 'home' = Firestore doc ID
+    // 'homeContent' = where dynamic content goes
+    loadPageContent("home", "homeContent");
+  </script>
 </body>
 </html>

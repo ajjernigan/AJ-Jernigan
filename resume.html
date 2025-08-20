@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+  <!-- Header / Navigation -->
   <header>
     <div class="logo">AJ Jernigan</div>
     <nav>
@@ -22,23 +23,36 @@
     </nav>
   </header>
 
+  <!-- Main content -->
   <main>
     <section class="content">
-        <div class="container">
-      <h1>Resume</h1>
-      <p><a href="assets/resume.pdf" download>Download Resume PDF</a></p>
-      <p>Coming soon: inline view of AJ's resume.</p>
+      <div class="container">
+        <h1>Resume</h1>
+        <p><a href="assets/resume.pdf" download>Download Resume PDF</a></p>
+        <p>Coming soon: inline view of AJ's resume.</p>
+
+        <!-- Firestore dynamic content -->
+        <div id="resumeContent"></div>
+      </div>
     </section>
   </main>
 
+  <!-- Footer -->
   <footer>
     <div class="social-icons">
       <a href="#">Instagram</a>
       <a href="#">Bluesky</a>
       <a href="#">YouTube</a>
     </div>
-    </div>
     <p>&copy; 2025 AJ Jernigan</p>
   </footer>
+
+  <!-- Load Firestore content -->
+  <script type="module">
+    import { loadPageContent } from "./js/content-loader.js";
+    // Firestore doc ID = "resume"
+    // Section ID = "resumeContent"
+    loadPageContent("resume", "resumeContent");
+  </script>
 </body>
 </html>

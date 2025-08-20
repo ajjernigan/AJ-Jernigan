@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Resume - AJ Jernigan</title>
+  <title>Contact - AJ Jernigan</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+  <!-- Header / Navigation -->
   <header>
     <div class="logo">AJ Jernigan</div>
     <nav>
@@ -22,28 +23,29 @@
     </nav>
   </header>
 
-<main>
-  <section class="content">
-    <div class="container">
-    <h1>Contact AJ</h1>
-<form action="https://formspree.io/f/xeozdnyp" method="POST">
-  <label for="name">Name:</label>
-  <input type="text" id="name" name="name" required>
+  <!-- Main content -->
+  <main>
+    <section class="content">
+      <div class="container">
+        <h1>Contact AJ</h1>
 
-  <label for="email">Email:</label>
-  <input type="email" id="email" name="_replyto" required>
+        <!-- Dynamic Firestore content -->
+        <section id="contactContent"></section>
 
-  <label for="message">Message:</label>
-  <textarea id="message" name="message" required></textarea>
+        <!-- Contact form -->
+        <form id="contactForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+          <input type="text" name="name" placeholder="Your name" required>
+          <input type="email" name="email" placeholder="Your email" required>
+          <textarea name="message" placeholder="Your message" required></textarea>
+          <button type="submit">Send</button>
+        </form>
 
+        <p id="formStatus"></p>
+      </div>
+    </section>
+  </main>
 
-  <button type="submit">Send</button>
-</form>
-  <textarea id="message" name="message" required></textarea>
-  </section>
-</main>
-
-
+  <!-- Footer -->
   <footer>
     <div class="social-icons">
       <a href="#">Instagram</a>
@@ -52,5 +54,14 @@
     </div>
     <p>&copy; 2025 AJ Jernigan</p>
   </footer>
+
+  <!-- Scripts -->
+  <script type="module" src="./js/contact.js"></script>
+  <script type="module">
+    import { loadPageContent } from "./js/content-loader.js";
+    // Firestore doc ID = "contact"
+    // Section ID = "contactContent"
+    loadPageContent("contact", "contactContent");
+  </script>
 </body>
 </html>
