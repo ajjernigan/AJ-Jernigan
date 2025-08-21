@@ -5,8 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AJ Jernigan</title>
   <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- HEADER WITH VIDEO BACKGROUND -->
 <header class="hero-header">
-  <video src="assets/videos/backgroundvid.mp4" autoplay muted loop playsinline></video>
+  <video src="assets/videos/backgroundvid.mp4" autoplay muted playsinline></video>
   <nav class="hero-nav">
     <ul>
       <li><a href="index.html">Home</a></li>
@@ -24,37 +27,53 @@
   </div>
 </header>
 
-  <main>
-    <section class="introArea">
-      <div class="left">
-        <img id="introImage" src="assets/images/Jernigan Headshot 2025.JPG" alt="AJ Jernigan">
-      </div>
-      <div class="right">
-        <div id="introText"></div>
-        <p>AJ Jernigan is an actor, voice actor, writer, and director. Onstage, he has recently appeared in Shakespeare in the Square’s Macbeth and Romeo and Juliet, enhancing the ensemble with a strong sense of physical acting and performance. His voice is featured in an upcoming indie animated film “Stealing the Multiverse”, where he plays Simon, a friendly ally turned cautious foe. On screen, AJ has been in the short films “Off & On”, “The Designated Driver”, and “The Very Bad Terrible Thing You Could Not Stop”, to name a few. </p>
+  <!-- INTRO AREA -->
+  <section class="introArea">
+    <div class="left">
+      <img id="introImage" src="" alt="AJ Jernigan">
+    </div>
+    <div class="right">
+      <div id="introText"></div>
+    </div>
+  </section>
 
-          <p>
-            In his directorial career, AJ has written and directed two short films: “Everybody Wants to Change The World” and “Shattered”, the latter of which he also starred in. He submits annually to the NYCMidnight screenwriting contest, and in 2024, he was a semi-finalist. AJ is also working towards completing his fiction writing debut, with the novel provisionally named “Molotov Dawn.” </p>
+  <!-- FIREBASE SCRIPT -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
-          <p>
-            In his education, AJ also had major roles in high school and early college, including Billy Flynn in Chicago, Andrew Aguecheek in Twelfth Night, Lendall in Almost, Maine, and Rudolph in ‘Twas the Night. In addition, he lettered in theatre and was president of his high school theatre club. </p>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
+      authDomain: "aj-jernigan-site.firebaseapp.com",
+      projectId: "aj-jernigan-site",
+      storageBucket: "aj-jernigan-site.appspot.com",
+      messagingSenderId: "823081137921",
+      appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00"
+    };
 
-         <p> 
-          Currently, AJ attends NYU Tisch School of the Arts with a major in Drama, studying movement, dance, voice, and acting in the Experimental Theatre Wing. He can be found anywhere from Seattle to New York to San Francisco, but is always available online. 
-</p>
-      </div>
-    </section>
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-    <section class="reviewsArea">
-      <h2>Informal Reviews</h2>
-      <div id="reviewsList"></div>
-    </section>
-  </main>
+    async function loadIndexContent() {
+      try {
+        const snap = await getDoc(doc(db, "edits", "index"));
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.headshotUrl) {
+            document.getElementById("introImage").src = data.headshotUrl;
+          }
+          if (data.introText) {
+            document.getElementById("introText").innerHTML = data.introText;
+          }
+        } else {
+          console.log("⚠️ No content found for index page in Firestore.");
+        }
+      } catch (err) {
+        console.error("Error loading index content:", err);
+      }
+    }
 
-  <footer>
-    <p>&copy; 2025 AJ Jernigan</p>
-  </footer>
-
-  <script type="module" src="js/content-loader.js"></script>
+    loadIndexContent();
+  </script>
 </body>
 </html>

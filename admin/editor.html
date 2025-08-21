@@ -13,15 +13,37 @@
   </header>
 
   <main>
-    <textarea id="editorArea" rows="20" cols="80"></textarea>
-    <button id="saveBtn">Save Changes</button>
-    <p id="saveStatus"></p>
+    <!-- Headshot Upload -->
+    <section>
+      <h2>Headshot</h2>
+      <img id="headshotPreview" src="" alt="Current Headshot" style="max-width:200px; display:block; margin-bottom:1rem;">
+      <input type="file" id="headshotInput" accept="image/*">
+      <button id="uploadHeadshotBtn">Upload Headshot</button>
+      <p id="headshotStatus"></p>
+    </section>
+
+    <!-- Intro Text -->
+    <section>
+      <h2>Intro Text</h2>
+      <textarea id="editorArea" rows="20" cols="80"></textarea>
+      <button id="saveBtn">Save Changes</button>
+      <p id="saveStatus"></p>
+    </section>
+
+    <!-- Informal Reviews -->
+    <section class="reviewsArea">
+      <h2>Informal Reviews</h2>
+      <div id="reviewsList"></div>
+      <textarea id="newReview" rows="3" placeholder="Add a new review"></textarea>
+      <button id="addReviewBtn">Add Review</button>
+    </section>
   </main>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
     import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+    import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
@@ -29,21 +51,29 @@
       projectId: "aj-jernigan-site",
       storageBucket: "aj-jernigan-site.appspot.com",
       messagingSenderId: "823081137921",
-      appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00",
+      appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
+    const storage = getStorage(app);
 
-    const params = new URLSearchParams(window.location.search);
-    const page = params.get("page") || "index";
-
+    const page = "index"; // fixed for homepage
     const pageTitle = document.getElementById("pageTitle");
     const editorArea = document.getElementById("editorArea");
     const saveBtn = document.getElementById("saveBtn");
     const saveStatus = document.getElementById("saveStatus");
     const logoutBtn = document.getElementById("logoutBtn");
+
+    const headshotInput = document.getElementById("headshotInput");
+    const uploadHeadshotBtn = document.getElementById("uploadHeadshotBtn");
+    const headshotPreview = document.getElementById("headshotPreview");
+    const headshotStatus = document.getElementById("headshotStatus");
+
+    const reviewsList = document.getElementById("reviewsList");
+    const newReview = document.getElementById("newReview");
+    const addReviewBtn = document.getElementById("addReviewBtn");
 
     pageTitle.textContent = `Editing Page: ${page}`;
 
@@ -52,27 +82,99 @@
       if (!user) window.location.href = "login.html";
     });
 
-    // Load page content
     async function loadContent() {
       const docRef = doc(db, "edits", page);
       const docSnap = await getDoc(docRef);
-      editorArea.value = docSnap.exists() ? docSnap.data().content : "";
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        editorArea.value = data.introText || "";
+        if (data.headshotUrl) headshotPreview.src = data.headshotUrl;
+        loadReviews(data.reviews || []);
+      }
     }
 
-    loadContent();
+    async function loadReviews(reviews) {
+      reviewsList.innerHTML = "";
+      reviews.forEach((review, i) => {
+        const div = document.createElement("div");
+        div.style.border = "1px solid #ccc";
+        div.style.padding = "0.5rem";
+        div.style.marginBottom = "0.5rem";
+        div.contentEditable = true;
+        div.textContent = review;
+        div.dataset.index = i;
 
-    // Save content
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.style.marginLeft = "1rem";
+        deleteBtn.addEventListener("click", async () => {
+          reviews.splice(i, 1);
+          await setDoc(doc(db, "edits", page), { reviews }, { merge: true });
+          loadReviews(reviews);
+        });
+
+        div.addEventListener("blur", async () => {
+          reviews[i] = div.textContent;
+          await setDoc(doc(db, "edits", page), { reviews }, { merge: true });
+        });
+
+        div.appendChild(deleteBtn);
+        reviewsList.appendChild(div);
+      });
+    }
+
     saveBtn.addEventListener("click", async () => {
-      const docRef = doc(db, "edits", page);
-      await setDoc(docRef, { content: editorArea.value });
+      await setDoc(doc(db, "edits", page), { introText: editorArea.value }, { merge: true });
       saveStatus.textContent = "Changes saved!";
     });
 
-    // Logout
+    // --- Corrected headshot upload ---
+    uploadHeadshotBtn.addEventListener("click", async () => {
+      const file = headshotInput.files[0];
+      if (!file) return alert("Please select an image first.");
+
+      try {
+        const timestamp = Date.now();
+        const storageRef = ref(storage, `headshots/${timestamp}_${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        uploadTask.on("state_changed",
+          null,
+          error => {
+            console.error("Upload failed:", error);
+            headshotStatus.textContent = "Upload failed";
+          },
+          async () => {
+            const url = await getDownloadURL(uploadTask.snapshot.ref);
+            await setDoc(doc(db, "edits", page), { headshotUrl: url }, { merge: true });
+            headshotPreview.src = url;
+            headshotStatus.textContent = "Upload successful!";
+          }
+        );
+      } catch (err) {
+        console.error(err);
+        headshotStatus.textContent = "Upload error";
+      }
+    });
+
+    addReviewBtn.addEventListener("click", async () => {
+      const reviewText = newReview.value.trim();
+      if (!reviewText) return;
+      const docRef = doc(db, "edits", page);
+      const docSnap = await getDoc(docRef);
+      const reviews = docSnap.exists() ? docSnap.data().reviews || [] : [];
+      reviews.push(reviewText);
+      await setDoc(doc(db, "edits", page), { reviews }, { merge: true });
+      newReview.value = "";
+      loadReviews(reviews);
+    });
+
     logoutBtn.addEventListener("click", async () => {
       await signOut(auth);
       window.location.href = "login.html";
     });
+
+    loadContent();
   </script>
 </body>
 </html>
