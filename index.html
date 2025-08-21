@@ -5,53 +5,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AJ Jernigan</title>
   <link rel="stylesheet" href="css/style.css" />
-</head>
-<body>
-  <!-- Header / Navigation -->
-  <header>
-    <div class="logo">AJ Jernigan</div>
-    <nav>
-      <ul>
-        <li><a href="index.html">Home</a></li>
-        <li><a href="resume.html">Resume</a></li>
-        <li><a href="photos.html">Photos</a></li>
-        <li><a href="videos.html">Videos</a></li>
-        <li><a href="voice-acting.html">Voice Acting</a></li>
-        <li><a href="writing.html">Writing</a></li>
-        <li><a href="contact.html">Contact AJ</a></li>
-      </ul>
-    </nav>
-  </header>
+<header class="hero-header">
+  <video src="assets/videos/backgroundvid.mp4" autoplay muted loop playsinline></video>
+  <nav class="hero-nav">
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="resume.html">Resume</a></li>
+      <li><a href="photos.html">Photos</a></li>
+      <li><a href="videos.html">Videos</a></li>
+      <li><a href="voice-acting.html">Voice Acting</a></li>
+      <li><a href="writing.html">Writing</a></li>
+      <li><a href="contact.html">Contact AJ</a></li>
+    </ul>
+  </nav>
+  <div class="hero-content">
+    <h1>Welcome to AJ Jernigan</h1>
+    <p>Actor • Voice Artist • Writer</p>
+  </div>
+</header>
 
-  <!-- Main content -->
   <main>
-    <!-- Original hero section remains intact -->
-    <section class="hero">
-      <h1>Welcome to AJ Jernigan's Portfolio</h1>
-      <p>Actor • Voice Artist • Writer</p>
-      <a class="button" href="contact.html">Contact AJ</a>
+    <section class="introArea">
+      <div class="left">
+        <img id="introImage" src="assets/images/Jernigan Headshot 2025.JPG" alt="AJ Jernigan">
+      </div>
+      <div class="right">
+        <div id="introText"></div>
+        <p>AJ Jernigan is an actor, voice actor, writer, and director. Onstage, he has recently appeared in Shakespeare in the Square’s Macbeth and Romeo and Juliet, enhancing the ensemble with a strong sense of physical acting and performance. His voice is featured in an upcoming indie animated film “Stealing the Multiverse”, where he plays Simon, a friendly ally turned cautious foe. On screen, AJ has been in the short films “Off & On”, “The Designated Driver”, and “The Very Bad Terrible Thing You Could Not Stop”, to name a few. </p>
+
+          <p>
+            In his directorial career, AJ has written and directed two short films: “Everybody Wants to Change The World” and “Shattered”, the latter of which he also starred in. He submits annually to the NYCMidnight screenwriting contest, and in 2024, he was a semi-finalist. AJ is also working towards completing his fiction writing debut, with the novel provisionally named “Molotov Dawn.” </p>
+
+          <p>
+            In his education, AJ also had major roles in high school and early college, including Billy Flynn in Chicago, Andrew Aguecheek in Twelfth Night, Lendall in Almost, Maine, and Rudolph in ‘Twas the Night. In addition, he lettered in theatre and was president of his high school theatre club. </p>
+
+         <p> 
+          Currently, AJ attends NYU Tisch School of the Arts with a major in Drama, studying movement, dance, voice, and acting in the Experimental Theatre Wing. He can be found anywhere from Seattle to New York to San Francisco, but is always available online. 
+</p>
+      </div>
     </section>
 
-    <!-- Firestore dynamic content -->
-    <section id="homeContent"></section>
+    <section class="reviewsArea">
+      <h2>Informal Reviews</h2>
+      <div id="reviewsList"></div>
+    </section>
   </main>
 
-  <!-- Footer remains intact -->
   <footer>
-    <div class="social-icons">
-      <a href="#">Instagram</a>
-      <a href="#">Bluesky</a>
-      <a href="#">YouTube</a>
-    </div>
     <p>&copy; 2025 AJ Jernigan</p>
   </footer>
 
-  <!-- Load Firestore content at the end of body -->
-  <script type="module">
-    import { loadPageContent } from "./js/content-loader.js";
-    // 'home' = Firestore doc ID
-    // 'homeContent' = where dynamic content goes
-    loadPageContent("home", "homeContent");
-  </script>
+  <script type="module" src="js/content-loader.js"></script>
 </body>
 </html>

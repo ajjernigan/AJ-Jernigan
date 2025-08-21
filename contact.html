@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <!-- Header / Navigation -->
   <header>
     <div class="logo">AJ Jernigan</div>
     <nav>
@@ -23,29 +22,22 @@
     </nav>
   </header>
 
-  <!-- Main content -->
   <main>
     <section class="content">
-      <div class="container">
-        <h1>Contact AJ</h1>
+      <div id="pageContent"></div>
 
-        <!-- Dynamic Firestore content -->
-        <section id="contactContent"></section>
+      <!-- Contact form -->
+      <form id="contactForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+        <input type="text" name="name" placeholder="Your name" required />
+        <input type="email" name="email" placeholder="Your email" required />
+        <textarea name="message" placeholder="Your message" required></textarea>
+        <button type="submit">Send</button>
+      </form>
 
-        <!-- Contact form -->
-        <form id="contactForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
-          <input type="text" name="name" placeholder="Your name" required>
-          <input type="email" name="email" placeholder="Your email" required>
-          <textarea name="message" placeholder="Your message" required></textarea>
-          <button type="submit">Send</button>
-        </form>
-
-        <p id="formStatus"></p>
-      </div>
+      <p id="formStatus"></p>
     </section>
   </main>
 
-  <!-- Footer -->
   <footer>
     <div class="social-icons">
       <a href="#">Instagram</a>
@@ -55,13 +47,9 @@
     <p>&copy; 2025 AJ Jernigan</p>
   </footer>
 
-  <!-- Scripts -->
-  <script type="module" src="./js/contact.js"></script>
   <script type="module">
     import { loadPageContent } from "./js/content-loader.js";
-    // Firestore doc ID = "contact"
-    // Section ID = "contactContent"
-    loadPageContent("contact", "contactContent");
+    loadPageContent("contact", "pageContent");
   </script>
 </body>
 </html>

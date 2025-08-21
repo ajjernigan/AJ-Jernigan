@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <!-- Header / Navigation -->
   <header>
     <div class="logo">AJ Jernigan</div>
     <nav>
@@ -22,37 +21,38 @@
       </ul>
     </nav>
   </header>
+  <div id="resumeContent">Loading resume...</div>
 
-  <!-- Main content -->
-  <main>
-    <section class="content">
-      <div class="container">
-        <h1>Resume</h1>
-        <p><a href="assets/resume.pdf" download>Download Resume PDF</a></p>
-        <p>Coming soon: inline view of AJ's resume.</p>
-
-        <!-- Firestore dynamic content -->
-        <div id="resumeContent"></div>
-      </div>
-    </section>
-  </main>
-
-  <!-- Footer -->
-  <footer>
-    <div class="social-icons">
-      <a href="#">Instagram</a>
-      <a href="#">Bluesky</a>
-      <a href="#">YouTube</a>
-    </div>
-    <p>&copy; 2025 AJ Jernigan</p>
-  </footer>
-
-  <!-- Load Firestore content -->
   <script type="module">
-    import { loadPageContent } from "./js/content-loader.js";
-    // Firestore doc ID = "resume"
-    // Section ID = "resumeContent"
-    loadPageContent("resume", "resumeContent");
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+   
+    const firebaseConfig = {
+      apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
+      authDomain: "aj-jernigan-site.firebaseapp.com",
+      projectId: "aj-jernigan-site",
+      storageBucket: "aj-jernigan-site.appspot.com",
+      messagingSenderId: "823081137921",
+      appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function loadResume() {
+      const docRef = doc(db, "edits", "resume");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        document.getElementById("resumeContent").innerHTML = docSnap.data().content;
+      } else {
+        document.getElementById("resumeContent").innerHTML = "No resume found.";
+      }
+    }
+
+    loadResume();
   </script>
+</body>
+
 </body>
 </html>

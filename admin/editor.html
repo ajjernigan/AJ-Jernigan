@@ -3,25 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Page Editor - AJ Jernigan</title>
+  <title>Editor - AJ Jernigan</title>
   <link rel="stylesheet" href="../css/style.css" />
 </head>
 <body>
   <header>
-    <h1 id="pageTitle">Editing Page: </h1>
+    <h1 id="pageTitle">Editing Page</h1>
     <button id="logoutBtn">Logout</button>
   </header>
 
   <main>
     <textarea id="editorArea" rows="20" cols="80"></textarea>
-    <button id="saveBtn">Save</button>
+    <button id="saveBtn">Save Changes</button>
     <p id="saveStatus"></p>
   </main>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
@@ -33,8 +33,8 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
     const params = new URLSearchParams(window.location.search);
     const page = params.get("page") || "index";
@@ -47,24 +47,28 @@
 
     pageTitle.textContent = `Editing Page: ${page}`;
 
+    // Auth check
     onAuthStateChanged(auth, user => {
       if (!user) window.location.href = "login.html";
     });
 
+    // Load page content
     async function loadContent() {
       const docRef = doc(db, "edits", page);
       const docSnap = await getDoc(docRef);
-      editorArea.value = docSnap.exists() ? docSnap.data().content || "" : "";
+      editorArea.value = docSnap.exists() ? docSnap.data().content : "";
     }
 
     loadContent();
 
+    // Save content
     saveBtn.addEventListener("click", async () => {
       const docRef = doc(db, "edits", page);
       await setDoc(docRef, { content: editorArea.value });
       saveStatus.textContent = "Changes saved!";
     });
 
+    // Logout
     logoutBtn.addEventListener("click", async () => {
       await signOut(auth);
       window.location.href = "login.html";

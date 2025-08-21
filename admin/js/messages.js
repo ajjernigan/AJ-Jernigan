@@ -1,6 +1,8 @@
 import { db } from "./firebase-config.js";
 import { collection, getDocs, query, orderBy } 
   from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import { app } from "./firebase-config.js";
+
 
 const messagesContainer = document.getElementById("messagesContainer");
 

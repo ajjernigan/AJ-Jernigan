@@ -83,3 +83,100 @@ footer {
   border-bottom: 2px solid #ddd;
   padding-bottom: 0.5rem;
 }
+
+.hero-header {
+  position: relative;
+  width: 100%;
+  height: 80vh; 
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+}
+
+.hero-header video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0; 
+}
+
+.hero-nav {
+  position: relative;
+  z-index: 2; 
+  width: 100%;
+  text-align: center;
+  background: rgba(0,0,0,0.3); 
+}
+
+.hero-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 10px 0;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.hero-nav a {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1; 
+  text-align: center;
+}
+.introArea {
+  display: flex;
+  flex-wrap: nowrap; /* DON’T wrap by default */
+  align-items: flex-start;
+  gap: 40px;
+  width: 100%;
+  max-width: 1200px; /* optional, to center content on large screens */
+  margin: 0 auto;     /* center container */
+  padding: 40px 20px;
+  box-sizing: border-box;
+}
+
+.introArea .left {
+  flex: 0 0 50%; /* exactly half */
+  display: flex;
+  justify-content: center;
+}
+
+.introArea .left img {
+  width: 80%; /* image fills 80% of left half */
+  max-width: 400px; /* prevents it from being huge */
+  height: auto;
+  border-radius: 10px;
+}
+
+.introArea .right {
+  flex: 0 0 50%; /* exactly half */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+/* Stack on small screens */
+@media (max-width: 768px) {
+  .introArea {
+    flex-wrap: wrap; /* now allow stacking */
+  }
+  .introArea .left,
+  .introArea .right {
+    flex: 0 0 100%;
+  }
+  .introArea .left img {
+    width: 50%; /* smaller on mobile */
+    margin: 0 auto;
+  }
+}

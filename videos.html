@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <!-- Header / Navigation -->
   <header>
     <div class="logo">AJ Jernigan</div>
     <nav>
@@ -23,20 +22,12 @@
     </nav>
   </header>
 
-  <!-- Main content -->
   <main>
     <section class="content">
-      <div class="container">
-        <h1>Videos</h1>
-        <p>Videos with citations underneath each one.</p>
-
-        <!-- Firestore dynamic content -->
-        <div id="videosContent"></div>
-      </div>
+      <div id="pageContent"></div>
     </section>
   </main>
 
-  <!-- Footer -->
   <footer>
     <div class="social-icons">
       <a href="#">Instagram</a>
@@ -46,12 +37,9 @@
     <p>&copy; 2025 AJ Jernigan</p>
   </footer>
 
-  <!-- Load Firestore content -->
   <script type="module">
     import { loadPageContent } from "./js/content-loader.js";
-    // Firestore doc ID = "videos"
-    // Section ID = "videosContent"
-    loadPageContent("videos", "videosContent");
+    loadPageContent("videos", "pageContent");
   </script>
 </body>
 </html>
