@@ -6,34 +6,21 @@
   <title>Editor - AJ Jernigan</title>
   <link rel="stylesheet" href="../css/style.css" />
   <style>
-    /* Simple polaroid style for photos grid */
-    .photo-slot {
-      display: inline-block;
-      margin: 10px;
-      text-align: center;
-      width: 200px;
-    }
-    .photo-slot img {
-      width: 100%;
-      border: 1px solid #ccc;
-      padding: 5px;
-      background: white;
-      box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-    }
-    .photo-slot input {
-      margin-top: 5px;
-    }
+    .photos-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem; }
+    .photos-grid div { border: 1px solid #ccc; padding: 0.5rem; text-align: center; }
+    .photos-grid img { width: 100%; max-width: 200px; display: block; margin-bottom: 0.5rem; }
   </style>
 </head>
 <body>
   <header>
     <h1 id="pageTitle">Editing Page</h1>
+    <button id="backBtn">Back to Dashboard</button>
     <button id="logoutBtn">Logout</button>
   </header>
 
   <main>
-    <!-- Home Page Sections -->
-    <section id="headshotEditor" style="display:none">
+    <!-- Headshot Upload -->
+    <section>
       <h2>Headshot</h2>
       <img id="headshotPreview" src="" alt="Current Headshot" style="max-width:200px; display:block; margin-bottom:1rem;">
       <input type="file" id="headshotInput" accept="image/*">
@@ -41,24 +28,28 @@
       <p id="headshotStatus"></p>
     </section>
 
-    <section id="introEditor" style="display:none">
+    <!-- Intro Text -->
+    <section>
       <h2>Intro Text</h2>
-      <textarea id="editorArea" rows="10" cols="80"></textarea>
+      <textarea id="editorArea" rows="20" cols="80"></textarea>
       <button id="saveBtn">Save Changes</button>
       <p id="saveStatus"></p>
     </section>
 
-    <section id="reviewsEditor" style="display:none">
+    <!-- Informal Reviews -->
+    <section class="reviewsArea">
       <h2>Informal Reviews</h2>
       <div id="reviewsList"></div>
       <textarea id="newReview" rows="3" placeholder="Add a new review"></textarea>
       <button id="addReviewBtn">Add Review</button>
     </section>
 
-    <!-- Photos Page Editor -->
-    <section id="photosEditor" style="display:none">
-      <h2>Photos Grid</h2>
-      <div id="photosGrid"></div>
+    <!-- Photos Editor -->
+    <section>
+      <h2>Photos</h2>
+      <div id="photosEditorGrid" class="photos-grid"></div>
+      <button id="savePhotosBtn">Save Photos</button>
+      <p id="photosStatus"></p>
     </section>
   </main>
 
@@ -82,71 +73,79 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    // Get page from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const page = urlParams.get("page") || "index";
-
+    // --- Elements ---
+    const page = new URLSearchParams(window.location.search).get("page") || "index";
     const pageTitle = document.getElementById("pageTitle");
-    pageTitle.textContent = `Editing Page: ${page}`;
-
-    // Back to dashboard button
-    const backBtn = document.createElement("button");
-    backBtn.textContent = "← Back to Dashboard";
-    backBtn.style.marginLeft = "1rem";
-    backBtn.addEventListener("click", () => window.location.href = "dashboard.html");
-    pageTitle.parentElement.insertBefore(backBtn, pageTitle.nextSibling);
-
-    // Logout
+    const backBtn = document.getElementById("backBtn");
     const logoutBtn = document.getElementById("logoutBtn");
-    onAuthStateChanged(auth, user => { if(!user) window.location.href="login.html"; });
-    logoutBtn.addEventListener("click", async()=>{ await signOut(auth); window.location.href="login.html"; });
 
-    // --- HOME PAGE EDITORS ---
+    const editorArea = document.getElementById("editorArea");
+    const saveBtn = document.getElementById("saveBtn");
+    const saveStatus = document.getElementById("saveStatus");
+
     const headshotInput = document.getElementById("headshotInput");
     const uploadHeadshotBtn = document.getElementById("uploadHeadshotBtn");
     const headshotPreview = document.getElementById("headshotPreview");
     const headshotStatus = document.getElementById("headshotStatus");
-    const editorArea = document.getElementById("editorArea");
-    const saveBtn = document.getElementById("saveBtn");
-    const saveStatus = document.getElementById("saveStatus");
+
     const reviewsList = document.getElementById("reviewsList");
     const newReview = document.getElementById("newReview");
     const addReviewBtn = document.getElementById("addReviewBtn");
 
+    const photosEditorGrid = document.getElementById("photosEditorGrid");
+    const savePhotosBtn = document.getElementById("savePhotosBtn");
+    const photosStatus = document.getElementById("photosStatus");
+
+    pageTitle.textContent = `Editing Page: ${page}`;
+
+    // Auth check
+    onAuthStateChanged(auth, user => {
+      if (!user) window.location.href = "login.html";
+    });
+
+    // Back to dashboard
+    backBtn.addEventListener("click", () => {
+      window.location.href = "dashboard.html";
+    });
+
+    // --- Load Page Content ---
     async function loadContent() {
-      const docRef = doc(db,"edits",page);
+      const docRef = doc(db, "edits", page);
       const docSnap = await getDoc(docRef);
-      if(docSnap.exists()){
+      if (docSnap.exists()) {
         const data = docSnap.data();
         editorArea.value = data.introText || "";
-        if(data.headshotUrl) headshotPreview.src = data.headshotUrl;
+        if (data.headshotUrl) headshotPreview.src = data.headshotUrl;
         loadReviews(data.reviews || []);
       }
+
+      if (page === "photos") loadPhotosEditor();
     }
 
-    async function loadReviews(reviews){
+    // --- Reviews ---
+    async function loadReviews(reviews) {
       reviewsList.innerHTML = "";
-      reviews.forEach((review,i)=>{
+      reviews.forEach((review, i) => {
         const div = document.createElement("div");
-        div.style.border="1px solid #ccc";
-        div.style.padding="0.5rem";
-        div.style.marginBottom="0.5rem";
+        div.style.border = "1px solid #ccc";
+        div.style.padding = "0.5rem";
+        div.style.marginBottom = "0.5rem";
         div.contentEditable = true;
         div.textContent = review;
-        div.dataset.index=i;
+        div.dataset.index = i;
 
         const deleteBtn = document.createElement("button");
-        deleteBtn.textContent="Delete";
-        deleteBtn.style.marginLeft="1rem";
-        deleteBtn.addEventListener("click", async ()=>{
-          reviews.splice(i,1);
-          await setDoc(doc(db,"edits",page),{reviews},{merge:true});
+        deleteBtn.textContent = "Delete";
+        deleteBtn.style.marginLeft = "1rem";
+        deleteBtn.addEventListener("click", async () => {
+          reviews.splice(i, 1);
+          await setDoc(doc(db, "edits", page), { reviews }, { merge: true });
           loadReviews(reviews);
         });
 
-        div.addEventListener("blur", async ()=>{
-          reviews[i]=div.textContent;
-          await setDoc(doc(db,"edits",page),{reviews},{merge:true});
+        div.addEventListener("blur", async () => {
+          reviews[i] = div.textContent;
+          await setDoc(doc(db, "edits", page), { reviews }, { merge: true });
         });
 
         div.appendChild(deleteBtn);
@@ -154,125 +153,100 @@
       });
     }
 
-    saveBtn.addEventListener("click", async()=>{
-      await setDoc(doc(db,"edits",page),{introText:editorArea.value},{merge:true});
-      saveStatus.textContent="Changes saved!";
-    });
-
-    uploadHeadshotBtn.addEventListener("click", async()=>{
-      const file=headshotInput.files[0];
-      if(!file)return alert("Please select an image first.");
-      headshotStatus.textContent="Uploading...";
-
-      try{
-        const options={ maxSizeMB:2, maxWidthOrHeight:2000, useWebWorker:true };
-        const compressedFile = await imageCompression(file,options);
-
-        const formData = new FormData();
-        formData.append("file",compressedFile);
-        formData.append("upload_preset","aj_photos_upload");
-
-        const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload",{
-          method:"POST", body:formData
-        });
-
-        if(!res.ok) throw new Error("Cloudinary upload failed");
-        const data=await res.json();
-        const url=data.secure_url;
-        await setDoc(doc(db,"edits",page),{headshotUrl:url},{merge:true});
-        headshotPreview.src=url;
-        headshotStatus.textContent="Upload successful!";
-      }catch(err){
-        console.error(err);
-        headshotStatus.textContent="Upload error: "+err.message;
-      }
-    });
-
-    addReviewBtn.addEventListener("click", async()=>{
-      const reviewText=newReview.value.trim();
-      if(!reviewText) return;
-      const docRef=doc(db,"edits",page);
-      const docSnap=await getDoc(docRef);
-      const reviews=docSnap.exists()? docSnap.data().reviews||[]:[];
+    addReviewBtn.addEventListener("click", async () => {
+      const reviewText = newReview.value.trim();
+      if (!reviewText) return;
+      const docRef = doc(db, "edits", page);
+      const docSnap = await getDoc(docRef);
+      const reviews = docSnap.exists() ? docSnap.data().reviews || [] : [];
       reviews.push(reviewText);
-      await setDoc(doc(db,"edits",page),{reviews},{merge:true});
-      newReview.value="";
+      await setDoc(doc(db, "edits", page), { reviews }, { merge: true });
+      newReview.value = "";
       loadReviews(reviews);
     });
 
-    // --- PHOTOS PAGE EDITOR ---
-    const photosGrid = document.getElementById("photosGrid");
-    async function loadPhotos(){
-      const docRef = doc(db,"edits","photos");
-      const docSnap = await getDoc(docRef);
-      const data = docSnap.exists()? docSnap.data() : {};
-      photosGrid.innerHTML="";
-      for(let i=0;i<6;i++){
-        const slotDiv=document.createElement("div");
-        slotDiv.className="photo-slot";
+    // --- Save Intro ---
+    saveBtn.addEventListener("click", async () => {
+      await setDoc(doc(db, "edits", page), { introText: editorArea.value }, { merge: true });
+      saveStatus.textContent = "Changes saved!";
+    });
 
-        const img = document.createElement("img");
-        img.src = data[`photo${i}`]?.url || "";
-        img.alt = `Photo ${i+1}`;
+    // --- Headshot Upload ---
+    uploadHeadshotBtn.addEventListener("click", async () => {
+      const file = headshotInput.files[0];
+      if (!file) return alert("Please select an image first.");
+      headshotStatus.textContent = "Uploading...";
 
-        const fileInput = document.createElement("input");
-        fileInput.type="file";
-        fileInput.accept="image/*";
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", "aj_photos_upload");
 
-        const captionInput = document.createElement("input");
-        captionInput.type="text";
-        captionInput.placeholder="Caption";
-        captionInput.value = data[`photo${i}`]?.caption || "";
+        const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        const url = data.secure_url;
 
-        const uploadBtn = document.createElement("button");
-        uploadBtn.textContent="Upload";
-        uploadBtn.addEventListener("click", async()=>{
-          if(!fileInput.files[0]) return alert("Select a file");
-          try{
-            const options={ maxSizeMB:2, maxWidthOrHeight:2000, useWebWorker:true };
-            const compressedFile = await imageCompression(fileInput.files[0],options);
-
-            const formData = new FormData();
-            formData.append("file",compressedFile);
-            formData.append("upload_preset","aj_photos_upload");
-
-            const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload",{
-              method:"POST",body:formData
-            });
-            if(!res.ok) throw new Error("Upload failed");
-            const result=await res.json();
-            const url=result.secure_url;
-            await setDoc(doc(db,"edits","photos"),{[`photo${i}`]:{url,caption:captionInput.value}},{merge:true});
-            img.src=url;
-            alert("Upload successful!");
-          }catch(err){ console.error(err); alert("Upload error: "+err.message); }
-        });
-
-        captionInput.addEventListener("blur", async()=>{
-          await setDoc(doc(db,"edits","photos"),{[`photo${i}`]:{url:img.src,caption:captionInput.value}},{merge:true});
-        });
-
-        slotDiv.appendChild(img);
-        slotDiv.appendChild(fileInput);
-        slotDiv.appendChild(captionInput);
-        slotDiv.appendChild(uploadBtn);
-        photosGrid.appendChild(slotDiv);
+        await setDoc(doc(db, "edits", page), { headshotUrl: url }, { merge: true });
+        headshotPreview.src = url;
+        headshotStatus.textContent = "Upload successful!";
+      } catch (err) {
+        console.error(err);
+        headshotStatus.textContent = "Upload error: " + err.message;
       }
+    });
+
+    // --- Photos Editor ---
+    let photosData = new Array(6).fill({url:"", caption:""});
+
+    async function loadPhotosEditor() {
+      const docRef = doc(db, "edits", "photos");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) photosData = docSnap.data().photos || photosData;
+
+      photosEditorGrid.innerHTML = "";
+      photosData.forEach((item, i) => {
+        const div = document.createElement("div");
+        div.innerHTML = `
+          <img src="${item.url || 'https://via.placeholder.com/200'}" alt="Photo ${i+1}">
+          <input type="file" id="photoFile${i}">
+          <input type="text" id="photoCaption${i}" placeholder="Caption" value="${item.caption || ''}">
+        `;
+        photosEditorGrid.appendChild(div);
+      });
     }
 
-    // --- Show relevant editor based on page ---
-    if(page==="index"){ document.getElementById("headshotEditor").style.display="block";
-                        document.getElementById("introEditor").style.display="block";
-                        document.getElementById("reviewsEditor").style.display="block";
-                        loadContent();
-    } else if(page==="photos"){
-      document.getElementById("photosEditor").style.display="block";
-      loadPhotos();
-    } else {
-      // fallback for other pages
-      document.getElementById("introEditor").style.display="block";
-      loadContent();
-    }
+    savePhotosBtn.addEventListener("click", async () => {
+      photosStatus.textContent = "Saving photos...";
+      try {
+        for (let i=0; i<photosData.length; i++) {
+          const fileInput = document.getElementById(`photoFile${i}`);
+          const captionInput = document.getElementById(`photoCaption${i}`);
+          if (fileInput.files[0]) {
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+            formData.append("upload_preset", "aj_photos_upload");
+            const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload", {method:"POST", body:formData});
+            const data = await res.json();
+            photosData[i].url = data.secure_url;
+          }
+          photosData[i].caption = captionInput.value;
+        }
+
+        await setDoc(doc(db, "edits", "photos"), { photos: photosData }, { merge: true });
+        photosStatus.textContent = "Photos saved!";
+      } catch(err) {
+        console.error(err);
+        photosStatus.textContent = "Error saving photos";
+      }
+    });
+
+    // --- Logout ---
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "login.html";
+    });
+
+    loadContent();
   </script>
 </body>
 </html>
