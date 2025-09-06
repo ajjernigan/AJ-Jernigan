@@ -39,6 +39,9 @@
     </section>
   </main>
 
+  <!-- Include browser-image-compression library -->
+  <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.1/dist/browser-image-compression.js"></script>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
@@ -80,7 +83,6 @@
       if (!user) window.location.href = "login.html";
     });
 
-    // Load page content
     async function loadContent() {
       const docRef = doc(db, "edits", page);
       const docSnap = await getDoc(docRef);
@@ -92,7 +94,6 @@
       }
     }
 
-    // Load reviews
     async function loadReviews(reviews) {
       reviewsList.innerHTML = "";
       reviews.forEach((review, i) => {
@@ -123,47 +124,53 @@
       });
     }
 
-    // Save intro text
     saveBtn.addEventListener("click", async () => {
       await setDoc(doc(db, "edits", page), { introText: editorArea.value }, { merge: true });
       saveStatus.textContent = "Changes saved!";
     });
 
-    // Headshot Upload via Cloudinary
+    // --- Headshot Upload with Compression ---
     uploadHeadshotBtn.addEventListener("click", async () => {
       const file = headshotInput.files[0];
       if (!file) return alert("Please select an image first.");
-      headshotStatus.textContent = "Uploading...";
+
+      headshotStatus.textContent = "Compressing and uploading...";
 
       try {
+        // Compress image
+        const options = {
+          maxSizeMB: 2, // target max size ~2MB
+          maxWidthOrHeight: 2000,
+          useWebWorker: true
+        };
+        const compressedFile = await imageCompression(file, options);
+
         const formData = new FormData();
-        formData.append("file", file);
-        formData.append("upload_preset", "aj_photos_upload"); // your unsigned preset
+        formData.append("file", compressedFile);
+        formData.append("upload_preset", "aj_photos_upload"); // your Cloudinary preset
 
-        const res = await fetch(
-          "https://api.cloudinary.com/v1_1/dzktijdmh/image/upload", // your cloud name
-          {
-            method: "POST",
-            body: formData
-          }
-        );
+        // Upload to Cloudinary
+        const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload", {
+          method: "POST",
+          body: formData
+        });
 
+        if (!res.ok) throw new Error("Cloudinary upload failed");
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error?.message || "Cloudinary upload failed");
-
         const url = data.secure_url;
 
+        // Save URL to Firestore
         await setDoc(doc(db, "edits", page), { headshotUrl: url }, { merge: true });
 
+        // Update preview
         headshotPreview.src = url;
         headshotStatus.textContent = "Upload successful!";
       } catch (err) {
         console.error(err);
-        headshotStatus.textContent = "Upload error";
+        headshotStatus.textContent = "Upload error: " + err.message;
       }
     });
 
-    // Add review
     addReviewBtn.addEventListener("click", async () => {
       const reviewText = newReview.value.trim();
       if (!reviewText) return;
@@ -176,7 +183,6 @@
       loadReviews(reviews);
     });
 
-    // Logout
     logoutBtn.addEventListener("click", async () => {
       await signOut(auth);
       window.location.href = "login.html";
