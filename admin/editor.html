@@ -138,24 +138,20 @@ uploadHeadshotBtn.addEventListener("click", async () => {
   try {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "aj_photos_upload"); // replace with your Cloudinary preset
+    formData.append("upload_preset", "aj_photos_upload"); // your unsigned preset
 
     // Upload to Cloudinary
-    const res = await fetch(
-      "https://api.cloudinary.com/v1_1/dzktijdmh/image/upload", 
-      {
-        method: "POST",
-        body: formData
-      }
-    );
+    const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload", {
+      method: "POST",
+      body: formData
+    });
 
     if (!res.ok) throw new Error("Cloudinary upload failed");
     const data = await res.json();
 
-    // Cloudinary returns a secure URL
     const url = data.secure_url;
 
-    // Save URL to Firestore
+    // Save Cloudinary URL to Firestore
     await setDoc(doc(db, "edits", page), { headshotUrl: url }, { merge: true });
 
     // Update preview
