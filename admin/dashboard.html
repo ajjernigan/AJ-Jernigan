@@ -13,6 +13,7 @@
   </header>
 
   <main>
+    <h2>Edit Pages</h2>
     <ul id="pagesList">
       <li><a href="editor.html?page=index">Home</a></li>
       <li><a href="editor.html?page=resume">Resume</a></li>
@@ -20,6 +21,12 @@
       <li><a href="editor.html?page=videos">Videos</a></li>
       <li><a href="editor.html?page=voice-acting">Voice Acting</a></li>
       <li><a href="editor.html?page=writing">Writing</a></li>
+    </ul>
+
+    <h2>Other Features</h2>
+    <ul id="featuresList">
+      <li><a href="analytics.html">Analytics</a></li>
+      <li><a href="messages.html">Messages</a></li>
     </ul>
   </main>
 
@@ -38,9 +45,9 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-
     const logoutBtn = document.getElementById("logoutBtn");
 
+    // Redirect to login if not authenticated
     onAuthStateChanged(auth, user => {
       if (!user) window.location.href = "login.html";
     });

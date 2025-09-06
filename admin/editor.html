@@ -6,45 +6,34 @@
   <title>Editor - AJ Jernigan</title>
   <link rel="stylesheet" href="../css/style.css" />
   <style>
-    .photo-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
-    }
-    .photo-card {
-      border: 1px solid #ccc;
-      padding: 0.5rem;
+    /* Simple polaroid style for photos grid */
+    .photo-slot {
+      display: inline-block;
+      margin: 10px;
       text-align: center;
-      background: #fff;
-      box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+      width: 200px;
     }
-    .photo-card img {
-      max-width: 100%;
-      height: auto;
-      display: block;
-      margin-bottom: 0.5rem;
+    .photo-slot img {
+      width: 100%;
+      border: 1px solid #ccc;
+      padding: 5px;
+      background: white;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    }
+    .photo-slot input {
+      margin-top: 5px;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1 id="pageTitle">Editor</h1>
+    <h1 id="pageTitle">Editing Page</h1>
     <button id="logoutBtn">Logout</button>
   </header>
 
   <main>
-    <!-- Main Menu -->
-    <section id="editorMenu">
-      <h2>Choose a page to edit</h2>
-      <button id="editHeadshotBtn">Headshot</button>
-      <button id="editIntroBtn">Intro Text</button>
-      <button id="editReviewsBtn">Informal Reviews</button>
-      <button id="editPhotosBtn">Photos</button>
-    </section>
-
-    <!-- Headshot Editor -->
-    <section id="headshotEditor" style="display:none;">
-      <button class="backBtn">← Back</button>
+    <!-- Home Page Sections -->
+    <section id="headshotEditor" style="display:none">
       <h2>Headshot</h2>
       <img id="headshotPreview" src="" alt="Current Headshot" style="max-width:200px; display:block; margin-bottom:1rem;">
       <input type="file" id="headshotInput" accept="image/*">
@@ -52,29 +41,24 @@
       <p id="headshotStatus"></p>
     </section>
 
-    <!-- Intro Text Editor -->
-    <section id="introEditor" style="display:none;">
-      <button class="backBtn">← Back</button>
+    <section id="introEditor" style="display:none">
       <h2>Intro Text</h2>
-      <textarea id="editorArea" rows="20" cols="80"></textarea>
+      <textarea id="editorArea" rows="10" cols="80"></textarea>
       <button id="saveBtn">Save Changes</button>
       <p id="saveStatus"></p>
     </section>
 
-    <!-- Reviews Editor -->
-    <section id="reviewsEditor" style="display:none;">
-      <button class="backBtn">← Back</button>
+    <section id="reviewsEditor" style="display:none">
       <h2>Informal Reviews</h2>
       <div id="reviewsList"></div>
       <textarea id="newReview" rows="3" placeholder="Add a new review"></textarea>
       <button id="addReviewBtn">Add Review</button>
     </section>
 
-    <!-- Photos Editor -->
-    <section id="photosEditor" style="display:none;">
-      <button class="backBtn">← Back</button>
-      <h2>Photos</h2>
-      <div class="photo-grid" id="photoGrid"></div>
+    <!-- Photos Page Editor -->
+    <section id="photosEditor" style="display:none">
+      <h2>Photos Grid</h2>
+      <div id="photosGrid"></div>
     </section>
   </main>
 
@@ -98,180 +82,197 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    const page = "index";
-    const editorMenu = document.getElementById("editorMenu");
+    // Get page from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const page = urlParams.get("page") || "index";
 
-    // Auth check
-    onAuthStateChanged(auth, user => {
-      if (!user) window.location.href = "login.html";
-    });
+    const pageTitle = document.getElementById("pageTitle");
+    pageTitle.textContent = `Editing Page: ${page}`;
 
-    // --- Toggle sections ---
-    function showSection(sectionId) {
-      document.querySelectorAll("main section").forEach(sec => sec.style.display = "none");
-      document.getElementById(sectionId).style.display = "block";
-    }
+    // Back to dashboard button
+    const backBtn = document.createElement("button");
+    backBtn.textContent = "← Back to Dashboard";
+    backBtn.style.marginLeft = "1rem";
+    backBtn.addEventListener("click", () => window.location.href = "dashboard.html");
+    pageTitle.parentElement.insertBefore(backBtn, pageTitle.nextSibling);
 
-    document.querySelectorAll(".backBtn").forEach(btn => {
-      btn.addEventListener("click", () => showSection("editorMenu"));
-    });
+    // Logout
+    const logoutBtn = document.getElementById("logoutBtn");
+    onAuthStateChanged(auth, user => { if(!user) window.location.href="login.html"; });
+    logoutBtn.addEventListener("click", async()=>{ await signOut(auth); window.location.href="login.html"; });
 
-    document.getElementById("editHeadshotBtn").addEventListener("click", () => showSection("headshotEditor"));
-    document.getElementById("editIntroBtn").addEventListener("click", () => showSection("introEditor"));
-    document.getElementById("editReviewsBtn").addEventListener("click", () => { showSection("reviewsEditor"); loadReviewsFromDB(); });
-    document.getElementById("editPhotosBtn").addEventListener("click", () => { showSection("photosEditor"); loadPhotos(); });
-
-    // --- Intro Text ---
+    // --- HOME PAGE EDITORS ---
+    const headshotInput = document.getElementById("headshotInput");
+    const uploadHeadshotBtn = document.getElementById("uploadHeadshotBtn");
+    const headshotPreview = document.getElementById("headshotPreview");
+    const headshotStatus = document.getElementById("headshotStatus");
     const editorArea = document.getElementById("editorArea");
     const saveBtn = document.getElementById("saveBtn");
     const saveStatus = document.getElementById("saveStatus");
-    saveBtn.addEventListener("click", async () => {
-      await setDoc(doc(db, "edits", page), { introText: editorArea.value }, { merge: true });
-      saveStatus.textContent = "Changes saved!";
-    });
-
-    // --- Reviews ---
     const reviewsList = document.getElementById("reviewsList");
     const newReview = document.getElementById("newReview");
     const addReviewBtn = document.getElementById("addReviewBtn");
-    async function loadReviewsFromDB() {
-      const docRef = doc(db, "edits", page);
+
+    async function loadContent() {
+      const docRef = doc(db,"edits",page);
       const docSnap = await getDoc(docRef);
-      const reviews = docSnap.exists() ? docSnap.data().reviews || [] : [];
-      loadReviews(reviews);
+      if(docSnap.exists()){
+        const data = docSnap.data();
+        editorArea.value = data.introText || "";
+        if(data.headshotUrl) headshotPreview.src = data.headshotUrl;
+        loadReviews(data.reviews || []);
+      }
     }
-    function loadReviews(reviews) {
+
+    async function loadReviews(reviews){
       reviewsList.innerHTML = "";
-      reviews.forEach((review, i) => {
+      reviews.forEach((review,i)=>{
         const div = document.createElement("div");
-        div.style.border = "1px solid #ccc";
-        div.style.padding = "0.5rem";
-        div.style.marginBottom = "0.5rem";
+        div.style.border="1px solid #ccc";
+        div.style.padding="0.5rem";
+        div.style.marginBottom="0.5rem";
         div.contentEditable = true;
         div.textContent = review;
+        div.dataset.index=i;
 
         const deleteBtn = document.createElement("button");
-        deleteBtn.textContent = "Delete";
-        deleteBtn.style.marginLeft = "1rem";
-        deleteBtn.addEventListener("click", async () => {
-          reviews.splice(i, 1);
-          await setDoc(doc(db, "edits", page), { reviews }, { merge: true });
+        deleteBtn.textContent="Delete";
+        deleteBtn.style.marginLeft="1rem";
+        deleteBtn.addEventListener("click", async ()=>{
+          reviews.splice(i,1);
+          await setDoc(doc(db,"edits",page),{reviews},{merge:true});
           loadReviews(reviews);
         });
 
-        div.addEventListener("blur", async () => {
-          reviews[i] = div.textContent;
-          await setDoc(doc(db, "edits", page), { reviews }, { merge: true });
+        div.addEventListener("blur", async ()=>{
+          reviews[i]=div.textContent;
+          await setDoc(doc(db,"edits",page),{reviews},{merge:true});
         });
 
         div.appendChild(deleteBtn);
         reviewsList.appendChild(div);
       });
     }
-    addReviewBtn.addEventListener("click", async () => {
-      const reviewText = newReview.value.trim();
-      if (!reviewText) return;
-      const docRef = doc(db, "edits", page);
-      const docSnap = await getDoc(docRef);
-      const reviews = docSnap.exists() ? docSnap.data().reviews || [] : [];
-      reviews.push(reviewText);
-      await setDoc(doc(db, "edits", page), { reviews }, { merge: true });
-      newReview.value = "";
-      loadReviews(reviews);
+
+    saveBtn.addEventListener("click", async()=>{
+      await setDoc(doc(db,"edits",page),{introText:editorArea.value},{merge:true});
+      saveStatus.textContent="Changes saved!";
     });
 
-    // --- Headshot Upload (same as before, with compression + Cloudinary) ---
-    const headshotInput = document.getElementById("headshotInput");
-    const uploadHeadshotBtn = document.getElementById("uploadHeadshotBtn");
-    const headshotPreview = document.getElementById("headshotPreview");
-    const headshotStatus = document.getElementById("headshotStatus");
-    uploadHeadshotBtn.addEventListener("click", async () => {
-      const file = headshotInput.files[0];
-      if (!file) return alert("Please select an image first.");
-      headshotStatus.textContent = "Compressing and uploading...";
-      try {
-        const compressedFile = await imageCompression(file, { maxSizeMB: 2, maxWidthOrHeight: 2000, useWebWorker: true });
+    uploadHeadshotBtn.addEventListener("click", async()=>{
+      const file=headshotInput.files[0];
+      if(!file)return alert("Please select an image first.");
+      headshotStatus.textContent="Uploading...";
+
+      try{
+        const options={ maxSizeMB:2, maxWidthOrHeight:2000, useWebWorker:true };
+        const compressedFile = await imageCompression(file,options);
+
         const formData = new FormData();
-        formData.append("file", compressedFile);
-        formData.append("upload_preset", "aj_photos_upload");
-        const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload", { method: "POST", body: formData });
-        if (!res.ok) throw new Error("Cloudinary upload failed");
-        const data = await res.json();
-        const url = data.secure_url;
-        await setDoc(doc(db, "edits", page), { headshotUrl: url }, { merge: true });
-        headshotPreview.src = url;
-        headshotStatus.textContent = "Upload successful!";
-      } catch (err) {
+        formData.append("file",compressedFile);
+        formData.append("upload_preset","aj_photos_upload");
+
+        const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload",{
+          method:"POST", body:formData
+        });
+
+        if(!res.ok) throw new Error("Cloudinary upload failed");
+        const data=await res.json();
+        const url=data.secure_url;
+        await setDoc(doc(db,"edits",page),{headshotUrl:url},{merge:true});
+        headshotPreview.src=url;
+        headshotStatus.textContent="Upload successful!";
+      }catch(err){
         console.error(err);
-        headshotStatus.textContent = "Upload error: " + err.message;
+        headshotStatus.textContent="Upload error: "+err.message;
       }
     });
 
-    // --- Photos Grid Editing ---
-    const photoGrid = document.getElementById("photoGrid");
-    async function loadPhotos() {
-      const docRef = doc(db, "edits", "photos");
+    addReviewBtn.addEventListener("click", async()=>{
+      const reviewText=newReview.value.trim();
+      if(!reviewText) return;
+      const docRef=doc(db,"edits",page);
+      const docSnap=await getDoc(docRef);
+      const reviews=docSnap.exists()? docSnap.data().reviews||[]:[];
+      reviews.push(reviewText);
+      await setDoc(doc(db,"edits",page),{reviews},{merge:true});
+      newReview.value="";
+      loadReviews(reviews);
+    });
+
+    // --- PHOTOS PAGE EDITOR ---
+    const photosGrid = document.getElementById("photosGrid");
+    async function loadPhotos(){
+      const docRef = doc(db,"edits","photos");
       const docSnap = await getDoc(docRef);
-      const photos = docSnap.exists() ? docSnap.data().photos || [] : Array(6).fill({ url: "", caption: "" });
-      photoGrid.innerHTML = "";
-      photos.forEach((photo, i) => {
-        const card = document.createElement("div");
-        card.className = "photo-card";
+      const data = docSnap.exists()? docSnap.data() : {};
+      photosGrid.innerHTML="";
+      for(let i=0;i<6;i++){
+        const slotDiv=document.createElement("div");
+        slotDiv.className="photo-slot";
+
         const img = document.createElement("img");
-        img.src = photo.url || "https://via.placeholder.com/300x200?text=Upload+Photo";
-        const captionInput = document.createElement("input");
-        captionInput.type = "text";
-        captionInput.value = photo.caption || "";
-        captionInput.placeholder = "Caption";
+        img.src = data[`photo${i}`]?.url || "";
+        img.alt = `Photo ${i+1}`;
 
         const fileInput = document.createElement("input");
-        fileInput.type = "file";
-        fileInput.accept = "image/*";
+        fileInput.type="file";
+        fileInput.accept="image/*";
+
+        const captionInput = document.createElement("input");
+        captionInput.type="text";
+        captionInput.placeholder="Caption";
+        captionInput.value = data[`photo${i}`]?.caption || "";
 
         const uploadBtn = document.createElement("button");
-        uploadBtn.textContent = "Upload";
+        uploadBtn.textContent="Upload";
+        uploadBtn.addEventListener("click", async()=>{
+          if(!fileInput.files[0]) return alert("Select a file");
+          try{
+            const options={ maxSizeMB:2, maxWidthOrHeight:2000, useWebWorker:true };
+            const compressedFile = await imageCompression(fileInput.files[0],options);
 
-        uploadBtn.addEventListener("click", async () => {
-          const file = fileInput.files[0];
-          if (!file) return alert("Select an image first.");
-          uploadBtn.textContent = "Uploading...";
-          try {
-            const compressedFile = await imageCompression(file, { maxSizeMB: 2, maxWidthOrHeight: 2000, useWebWorker: true });
             const formData = new FormData();
-            formData.append("file", compressedFile);
-            formData.append("upload_preset", "aj_photos_upload");
-            const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload", { method: "POST", body: formData });
-            if (!res.ok) throw new Error("Upload failed");
-            const data = await res.json();
-            const url = data.secure_url;
-            photos[i] = { url, caption: captionInput.value };
-            await setDoc(doc(db, "edits", "photos"), { photos }, { merge: true });
-            img.src = url;
-            uploadBtn.textContent = "Upload";
-          } catch (err) {
-            console.error(err);
-            uploadBtn.textContent = "Error";
-          }
+            formData.append("file",compressedFile);
+            formData.append("upload_preset","aj_photos_upload");
+
+            const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload",{
+              method:"POST",body:formData
+            });
+            if(!res.ok) throw new Error("Upload failed");
+            const result=await res.json();
+            const url=result.secure_url;
+            await setDoc(doc(db,"edits","photos"),{[`photo${i}`]:{url,caption:captionInput.value}},{merge:true});
+            img.src=url;
+            alert("Upload successful!");
+          }catch(err){ console.error(err); alert("Upload error: "+err.message); }
         });
 
-        captionInput.addEventListener("blur", async () => {
-          photos[i].caption = captionInput.value;
-          await setDoc(doc(db, "edits", "photos"), { photos }, { merge: true });
+        captionInput.addEventListener("blur", async()=>{
+          await setDoc(doc(db,"edits","photos"),{[`photo${i}`]:{url:img.src,caption:captionInput.value}},{merge:true});
         });
 
-        card.appendChild(img);
-        card.appendChild(captionInput);
-        card.appendChild(fileInput);
-        card.appendChild(uploadBtn);
-        photoGrid.appendChild(card);
-      });
+        slotDiv.appendChild(img);
+        slotDiv.appendChild(fileInput);
+        slotDiv.appendChild(captionInput);
+        slotDiv.appendChild(uploadBtn);
+        photosGrid.appendChild(slotDiv);
+      }
     }
 
-    // Logout
-    document.getElementById("logoutBtn").addEventListener("click", async () => {
-      await signOut(auth);
-      window.location.href = "login.html";
-    });
+    // --- Show relevant editor based on page ---
+    if(page==="index"){ document.getElementById("headshotEditor").style.display="block";
+                        document.getElementById("introEditor").style.display="block";
+                        document.getElementById("reviewsEditor").style.display="block";
+                        loadContent();
+    } else if(page==="photos"){
+      document.getElementById("photosEditor").style.display="block";
+      loadPhotos();
+    } else {
+      // fallback for other pages
+      document.getElementById("introEditor").style.display="block";
+      loadContent();
+    }
   </script>
 </body>
 </html>
