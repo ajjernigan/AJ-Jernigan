@@ -5,6 +5,75 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Photos - AJ Jernigan</title>
   <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .content h1 {
+      text-align: center;
+      margin: 2rem 0;
+      font-size: 2.25rem;
+      color: #333;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 0.5rem;
+    }
+
+    .photos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .photo-item {
+      text-align: center;
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+    
+    .photo-item:hover {
+      transform: translateY(-5px);
+    }
+    
+    .photo-item img {
+      width: 100%;
+      height: 250px;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+    
+    .photo-item .caption {
+      font-style: italic;
+      color: #666;
+      font-size: 0.9rem;
+    }
+    
+    .photo-placeholder {
+      width: 100%;
+      height: 250px;
+      background: #ddd;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      margin-bottom: 1rem;
+    }
+
+    .debug-info {
+      background: #f0f0f0;
+      padding: 1rem;
+      margin: 1rem;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -24,7 +93,19 @@
 
   <main>
     <section class="content">
-      <div id="pageContent"></div>
+      <h1>Photos</h1>
+      
+      <!-- Debug info (remove this after fixing) -->
+      <div class="debug-info" id="debugInfo">
+        Loading photos...
+      </div>
+      
+      <div class="photos-grid" id="photosGrid">
+        <div class="photo-item">
+          <div class="photo-placeholder">Loading photos...</div>
+          <div class="caption">Please wait</div>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -38,8 +119,128 @@
   </footer>
 
   <script type="module">
-    import { loadPageContent } from "./js/content-loader.js";
-    loadPageContent("photos", "pageContent");
+    const debugInfo = document.getElementById("debugInfo");
+    
+    function updateDebug(message) {
+      console.log(message);
+      debugInfo.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+      debugInfo.scrollTop = debugInfo.scrollHeight;
+    }
+
+    updateDebug("Starting photo loading process...");
+
+    try {
+      // Import Firebase modules
+      const { initializeApp } = await import("https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js");
+      const { getFirestore, doc, getDoc } = await import("https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js");
+      
+      updateDebug("Firebase modules imported successfully");
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
+        authDomain: "aj-jernigan-site.firebaseapp.com",
+        projectId: "aj-jernigan-site",
+        storageBucket: "aj-jernigan-site.appspot.com",
+        messagingSenderId: "823081137921",
+        appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      
+      updateDebug("Firebase initialized successfully");
+
+      async function loadPhotos() {
+        try {
+          updateDebug("Attempting to load photos from Firestore...");
+          
+          const docRef = doc(db, "edits", "photos");
+          const docSnap = await getDoc(docRef);
+          const photosGrid = document.getElementById("photosGrid");
+          
+          updateDebug(`Document exists: ${docSnap.exists()}`);
+          
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            updateDebug(`Document data keys: ${Object.keys(data).join(', ')}`);
+            
+            const photos = data.photos || [];
+            updateDebug(`Found ${photos.length} photos in database`);
+            
+            // Clear the loading placeholder
+            photosGrid.innerHTML = '';
+            
+            let photosDisplayed = 0;
+            
+            // Create up to 6 photo slots
+            for (let i = 0; i < 6; i++) {
+              const photo = photos[i];
+              
+              // Only show slots that have photos
+              if (photo && photo.url) {
+                const photoItem = document.createElement("div");
+                photoItem.className = "photo-item";
+                
+                updateDebug(`Displaying photo ${i + 1}: ${photo.url.substring(0, 50)}... with caption: "${photo.caption || 'No caption'}"`);
+                
+                photoItem.innerHTML = `
+                  <img src="${photo.url}" 
+                       alt="${photo.caption || 'Photo'}" 
+                       onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+                  <div class="photo-placeholder" style="display:none;">Failed to load image</div>
+                  <div class="caption">${photo.caption || ''}</div>
+                `;
+                
+                photosGrid.appendChild(photoItem);
+                photosDisplayed++;
+              }
+            }
+            
+            if (photosDisplayed === 0) {
+              updateDebug("No photos with URLs found - showing empty state");
+              photosGrid.innerHTML = `
+                <div class="photo-item">
+                  <div class="photo-placeholder">No photos uploaded yet</div>
+                  <div class="caption">Check back later for photos!</div>
+                </div>
+              `;
+            } else {
+              updateDebug(`Photos grid populated with ${photosDisplayed} photos`);
+            }
+          } else {
+            updateDebug("No photos document found in Firestore");
+            
+            // Clear the loading placeholder
+            photosGrid.innerHTML = `
+              <div class="photo-item">
+                <div class="photo-placeholder">No photos uploaded yet</div>
+                <div class="caption">Check back later for photos!</div>
+              </div>
+            `;
+          }
+        } catch (err) {
+          updateDebug(`Error in loadPhotos(): ${err.message}`);
+          console.error("Detailed error:", err);
+          
+          // Show error state
+          const photosGrid = document.getElementById("photosGrid");
+          photosGrid.innerHTML = `
+            <div class="photo-item">
+              <div class="photo-placeholder" style="background:#ffebee;color:#c62828;">
+                Error loading photos: ${err.message}
+              </div>
+              <div class="caption">Please check browser console for details</div>
+            </div>
+          `;
+        }
+      }
+
+      loadPhotos();
+
+    } catch (err) {
+      updateDebug(`Critical error during initialization: ${err.message}`);
+      console.error("Critical error:", err);
+    }
   </script>
 </body>
 </html>

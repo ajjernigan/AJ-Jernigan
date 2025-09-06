@@ -128,34 +128,45 @@
       saveStatus.textContent = "Changes saved!";
     });
 
-    // --- Corrected headshot upload ---
-    uploadHeadshotBtn.addEventListener("click", async () => {
-      const file = headshotInput.files[0];
-      if (!file) return alert("Please select an image first.");
+// --- Headshot Upload with Cloudinary ---
+uploadHeadshotBtn.addEventListener("click", async () => {
+  const file = headshotInput.files[0];
+  if (!file) return alert("Please select an image first.");
 
-      try {
-        const timestamp = Date.now();
-        const storageRef = ref(storage, `headshots/${timestamp}_${file.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, file);
+  headshotStatus.textContent = "Uploading...";
 
-        uploadTask.on("state_changed",
-          null,
-          error => {
-            console.error("Upload failed:", error);
-            headshotStatus.textContent = "Upload failed";
-          },
-          async () => {
-            const url = await getDownloadURL(uploadTask.snapshot.ref);
-            await setDoc(doc(db, "edits", page), { headshotUrl: url }, { merge: true });
-            headshotPreview.src = url;
-            headshotStatus.textContent = "Upload successful!";
-          }
-        );
-      } catch (err) {
-        console.error(err);
-        headshotStatus.textContent = "Upload error";
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "aj_photos_upload"); // replace with your Cloudinary preset
+
+    // Upload to Cloudinary
+    const res = await fetch(
+      "https://api.cloudinary.com/v1_1/dzktijdmh/image/upload", 
+      {
+        method: "POST",
+        body: formData
       }
-    });
+    );
+
+    if (!res.ok) throw new Error("Cloudinary upload failed");
+    const data = await res.json();
+
+    // Cloudinary returns a secure URL
+    const url = data.secure_url;
+
+    // Save URL to Firestore
+    await setDoc(doc(db, "edits", page), { headshotUrl: url }, { merge: true });
+
+    // Update preview
+    headshotPreview.src = url;
+    headshotStatus.textContent = "Upload successful!";
+  } catch (err) {
+    console.error(err);
+    headshotStatus.textContent = "Upload error";
+  }
+});
+
 
     addReviewBtn.addEventListener("click", async () => {
       const reviewText = newReview.value.trim();

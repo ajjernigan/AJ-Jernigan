@@ -8,24 +8,24 @@
 </head>
 <body>
   <!-- HEADER WITH VIDEO BACKGROUND -->
-<header class="hero-header">
-  <video src="assets/videos/backgroundvid.mp4" autoplay muted playsinline></video>
-  <nav class="hero-nav">
-    <ul>
-      <li><a href="index.html">Home</a></li>
-      <li><a href="resume.html">Resume</a></li>
-      <li><a href="photos.html">Photos</a></li>
-      <li><a href="videos.html">Videos</a></li>
-      <li><a href="voice-acting.html">Voice Acting</a></li>
-      <li><a href="writing.html">Writing</a></li>
-      <li><a href="contact.html">Contact AJ</a></li>
-    </ul>
-  </nav>
-  <div class="hero-content">
-    <h1>Welcome to AJ Jernigan</h1>
-    <p>Actor • Voice Artist • Writer</p>
-  </div>
-</header>
+  <header class="hero-header">
+    <video src="assets/videos/backgroundvid.mp4" autoplay muted playsinline></video>
+    <nav class="hero-nav">
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="resume.html">Resume</a></li>
+        <li><a href="photos.html">Photos</a></li>
+        <li><a href="videos.html">Videos</a></li>
+        <li><a href="voice-acting.html">Voice Acting</a></li>
+        <li><a href="writing.html">Writing</a></li>
+        <li><a href="contact.html">Contact AJ</a></li>
+      </ul>
+    </nav>
+    <div class="hero-content">
+      <h1>Welcome to AJ Jernigan</h1>
+      <p>Actor • Voice Artist • Writer</p>
+    </div>
+  </header>
 
   <!-- INTRO AREA -->
   <section class="introArea">
@@ -60,6 +60,7 @@
         if (snap.exists()) {
           const data = snap.data();
           if (data.headshotUrl) {
+            // Show uploaded Cloudinary headshot
             document.getElementById("introImage").src = data.headshotUrl;
           }
           if (data.introText) {
