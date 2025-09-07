@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photos Editor - AJ Jernigan</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  section { margin-bottom: 2rem; }
+  .photos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+  .photos-grid div {
+    border: 1px solid #ccc;
+    padding: 0.5rem;
+    text-align: center;
+  }
+  .photos-grid img {
+    width: 100%;
+    max-width: 400px;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Editing Photos</h1>
+  <button id="backBtn">Back to Dashboard</button>
+  <button id="logoutBtn">Logout</button>
+</header>
+
+<main>
+  <section>
+    <h2>Upload New Photo</h2>
+    <input type="file" id="newPhotoInput" accept="image/*">
+    <input type="text" id="newPhotoCaption" placeholder="Caption for new photo">
+    <button id="uploadPhotoBtn">Upload Photo</button>
+    <p id="photosStatus"></p>
+  </section>
+
+  <section>
+    <h2>Existing Photos</h2>
+    <div id="photosEditorGrid" class="photos-grid"></div>
+  </section>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import imageCompression from 'https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.1/dist/browser-image-compression.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
+  authDomain: "aj-jernigan-site.firebaseapp.com",
+  projectId: "aj-jernigan-site",
+  storageBucket: "aj-jernigan-site.appspot.com",
+  messagingSenderId: "823081137921",
+  appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const CLOUD_NAME = "dzktijdmh";
+const UPLOAD_PRESET = "aj_photos_upload";
+
+// Elements
+const newPhotoInput = document.getElementById("newPhotoInput");
+const newPhotoCaption = document.getElementById("newPhotoCaption");
+const uploadPhotoBtn = document.getElementById("uploadPhotoBtn");
+const photosStatus = document.getElementById("photosStatus");
+const photosEditorGrid = document.getElementById("photosEditorGrid");
+
+const backBtn = document.getElementById("backBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+
+// Auth & navigation
+onAuthStateChanged(auth, user => { if(!user) window.location.href = "login.html"; });
+backBtn.addEventListener("click", () => window.location.href = "dashboard.html");
+logoutBtn.addEventListener("click", async () => { await signOut(auth); window.location.href = "login.html"; });
+
+// Load existing photos
+async function loadPhotos() {
+  const q = query(collection(db, "photos"), orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  photosEditorGrid.innerHTML = "";
+
+  snap.forEach(docSnap => {
+    const data = docSnap.data();
+    const id = docSnap.id;
+
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <img src="${data.url}" alt="Photo">
+      <input type="text" value="${data.caption || ''}" id="caption-${id}" placeholder="Edit caption">
+      <button data-id="${id}" class="saveCaptionBtn">Save Caption</button>
+      <button data-id="${id}" class="deletePhotoBtn">Delete</button>
+    `;
+    photosEditorGrid.appendChild(div);
+  });
+
+  // Caption save
+  document.querySelectorAll(".saveCaptionBtn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const caption = document.getElementById(`caption-${id}`).value;
+      await updateDoc(doc(db, "photos", id), { caption });
+      photosStatus.textContent = "Caption updated!";
+    });
+  });
+
+  // Delete photo
+  document.querySelectorAll(".deletePhotoBtn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      await deleteDoc(doc(db, "photos", id));
+      loadPhotos();
+    });
+  });
+}
+
+// Upload new photo
+uploadPhotoBtn.addEventListener("click", async () => {
+  const file = newPhotoInput.files[0];
+  const caption = newPhotoCaption.value;
+  if(!file) return alert("Select a photo!");
+  photosStatus.textContent = "Uploading...";
+
+  try {
+    const compressedFile = await imageCompression(file, { maxSizeMB: 9, maxWidthOrHeight: 2000 });
+    const formData = new FormData();
+    formData.append("file", compressedFile);
+    formData.append("upload_preset", UPLOAD_PRESET);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method:"POST", body: formData });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error?.message || "Upload failed");
+
+    const url = data.secure_url;
+    await addDoc(collection(db, "photos"), { url, caption, createdAt: serverTimestamp() });
+
+    newPhotoInput.value = "";
+    newPhotoCaption.value = "";
+    photosStatus.textContent = "Photo uploaded!";
+    loadPhotos();
+  } catch(e) {
+    console.error("Photo upload error:", e);
+    photosStatus.textContent = "Error: " + e.message;
+  }
+});
+
+loadPhotos();
+</script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Homepage Editor - AJ Jernigan</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  section { margin-bottom: 2rem; }
+  .reviews div { border: 1px solid #ccc; padding: 0.5rem; margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Editing Homepage</h1>
+  <button id="backBtn">Back to Dashboard</button>
+  <button id="logoutBtn">Logout</button>
+</header>
+
+<main>
+  <!-- Headshot -->
+  <section>
+    <h2>Headshot</h2>
+    <img id="headshotPreview" src="" style="max-width:200px; display:block; margin-bottom:1rem;">
+    <input type="file" id="headshotInput" accept="image/*">
+    <button id="uploadHeadshotBtn">Upload Headshot</button>
+    <p id="headshotStatus"></p>
+  </section>
+
+  <!-- Intro Text -->
+  <section>
+    <h2>Intro Text</h2>
+    <textarea id="editorArea" rows="15" cols="80"></textarea>
+    <button id="saveBtn">Save Changes</button>
+    <p id="saveStatus"></p>
+  </section>
+
+  <!-- Reviews -->
+  <section>
+    <h2>Informal Reviews</h2>
+    <div id="reviewsList" class="reviews"></div>
+    <textarea id="newReview" rows="3" placeholder="Add new review"></textarea>
+    <button id="addReviewBtn">Add Review</button>
+  </section>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
+  authDomain: "aj-jernigan-site.firebaseapp.com",
+  projectId: "aj-jernigan-site",
+  storageBucket: "aj-jernigan-site.appspot.com",
+  messagingSenderId: "823081137921",
+  appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Elements
+const headshotInput = document.getElementById("headshotInput");
+const headshotPreview = document.getElementById("headshotPreview");
+const uploadHeadshotBtn = document.getElementById("uploadHeadshotBtn");
+const headshotStatus = document.getElementById("headshotStatus");
+
+const editorArea = document.getElementById("editorArea");
+const saveBtn = document.getElementById("saveBtn");
+const saveStatus = document.getElementById("saveStatus");
+
+const reviewsList = document.getElementById("reviewsList");
+const newReview = document.getElementById("newReview");
+const addReviewBtn = document.getElementById("addReviewBtn");
+
+const backBtn = document.getElementById("backBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+
+// Auth check
+onAuthStateChanged(auth, user => { if (!user) window.location.href = "login.html"; });
+
+// Navigation
+backBtn.addEventListener("click", () => window.location.href = "dashboard.html");
+logoutBtn.addEventListener("click", async () => { await signOut(auth); window.location.href = "login.html"; });
+
+// Load homepage content
+async function loadContent() {
+  const docRef = doc(db, "edits", "index");
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    if (data.headshotUrl) headshotPreview.src = data.headshotUrl;
+    if (data.introText) editorArea.value = data.introText;
+    loadReviews(data.reviews || []);
+  }
+}
+
+// Reviews
+function loadReviews(reviews) {
+  reviewsList.innerHTML = "";
+  reviews.forEach((review, i) => {
+    const div = document.createElement("div");
+    div.contentEditable = true;
+    div.textContent = review;
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "Delete";
+    delBtn.addEventListener("click", async () => {
+      reviews.splice(i, 1);
+      await setDoc(doc(db, "edits", "index"), { reviews }, { merge:true });
+      loadReviews(reviews);
+    });
+
+    div.addEventListener("blur", async () => {
+      reviews[i] = div.textContent;
+      await setDoc(doc(db, "edits", "index"), { reviews }, { merge:true });
+    });
+
+    div.appendChild(delBtn);
+    reviewsList.appendChild(div);
+  });
+}
+
+addReviewBtn.addEventListener("click", async () => {
+  const text = newReview.value.trim();
+  if (!text) return;
+  const docRef = doc(db, "edits", "index");
+  const docSnap = await getDoc(docRef);
+  const reviews = docSnap.exists() ? docSnap.data().reviews || [] : [];
+  reviews.push(text);
+  await setDoc(doc(db, "edits", "index"), { reviews }, { merge:true });
+  newReview.value = "";
+  loadReviews(reviews);
+});
+
+// Save intro
+saveBtn.addEventListener("click", async () => {
+  await setDoc(doc(db, "edits", "index"), { introText: editorArea.value }, { merge:true });
+  saveStatus.textContent = "Saved!";
+});
+
+// Headshot upload (Cloudinary)
+const CLOUD_NAME = "dzktijdmh";
+const UPLOAD_PRESET = "aj_photos_upload";
+uploadHeadshotBtn.addEventListener("click", async () => {
+  const file = headshotInput.files[0];
+  if (!file) return alert("Select an image!");
+  headshotStatus.textContent = "Uploading...";
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", UPLOAD_PRESET);
+
+  try {
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method:"POST", body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || "Upload failed");
+    const url = data.secure_url;
+    await setDoc(doc(db, "edits", "index"), { headshotUrl: url }, { merge:true });
+    headshotPreview.src = url;
+    headshotStatus.textContent = "Uploaded!";
+  } catch(e) {
+    headshotStatus.textContent = "Error: "+e.message;
+  }
+});
+
+loadContent();
+</script>
+</body>
+</html>

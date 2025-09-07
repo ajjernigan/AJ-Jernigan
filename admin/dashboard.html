@@ -7,55 +7,56 @@
   <link rel="stylesheet" href="../css/style.css" />
 </head>
 <body>
-  <header>
-    <h1>Admin Dashboard</h1>
-    <button id="logoutBtn">Logout</button>
-  </header>
+<header>
+  <h1>Admin Dashboard</h1>
+  <button id="logoutBtn">Logout</button>
+</header>
 
-  <main>
-    <h2>Edit Pages</h2>
-    <ul id="pagesList">
-      <li><a href="editor.html?page=index">Home</a></li>
-      <li><a href="editor.html?page=resume">Resume</a></li>
-      <li><a href="editor.html?page=photos">Photos</a></li>
-      <li><a href="editor.html?page=videos">Videos</a></li>
-      <li><a href="editor.html?page=voice-acting">Voice Acting</a></li>
-      <li><a href="editor.html?page=writing">Writing</a></li>
-    </ul>
+<main>
+  <h2>Edit Pages</h2>
+  <ul id="pagesList">
+    <li><a href="editor-index.html">Home</a></li>
+    <li><a href="editor-resume.html">Resume</a></li>
+    <li><a href="editor-photos.html">Photos</a></li>
+    <li><a href="editor-videos.html">Videos</a></li>
+    <li><a href="editor-voice-acting.html">Voice Acting</a></li>
+    <li><a href="editor-writing.html">Writing</a></li>
+  </ul>
 
-    <h2>Other Features</h2>
-    <ul id="featuresList">
-      <li><a href="analytics.html">Analytics</a></li>
-      <li><a href="messages.html">Messages</a></li>
-    </ul>
-  </main>
+  <h2>Other Features</h2>
+  <ul id="featuresList">
+    <li><a href="analytics.html">Analytics</a></li>
+    <li><a href="messages.html">Messages</a></li>
+  </ul>
+</main>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
-      authDomain: "aj-jernigan-site.firebaseapp.com",
-      projectId: "aj-jernigan-site",
-      storageBucket: "aj-jernigan-site.appspot.com",
-      messagingSenderId: "823081137921",
-      appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00",
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
+  authDomain: "aj-jernigan-site.firebaseapp.com",
+  projectId: "aj-jernigan-site",
+  storageBucket: "aj-jernigan-site.appspot.com",
+  messagingSenderId: "823081137921",
+  appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00",
+};
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const logoutBtn = document.getElementById("logoutBtn");
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const logoutBtn = document.getElementById("logoutBtn");
 
-    // Redirect to login if not authenticated
-    onAuthStateChanged(auth, user => {
-      if (!user) window.location.href = "login.html";
-    });
+// Redirect to login if not authenticated
+onAuthStateChanged(auth, user => {
+  if (!user) window.location.href = "login.html";
+});
 
-    logoutBtn.addEventListener("click", async () => {
-      await signOut(auth);
-      window.location.href = "login.html";
-    });
-  </script>
+// Logout
+logoutBtn.addEventListener("click", async () => {
+  await signOut(auth);
+  window.location.href = "login.html";
+});
+</script>
 </body>
 </html>
