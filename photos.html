@@ -27,35 +27,44 @@
     color: #007bff;
   }
 
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 big columns */
+  gap: 3rem; /* space between photos */
+  justify-items: center;
+  margin: 2rem auto;
+  max-width: 1400px; /* keeps grid centered on large screens */
+}
+
+.polaroid {
+  background: #fff;
+  padding: 15px 15px 40px 15px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  text-align: center;
+  max-width: 650px;   /* bigger image container */
+  width: 100%;
+  border: 1px solid #ddd;
+}
+
+.polaroid img {
+  width: 100%;   /* fills container */
+  height: auto;
+  display: block;
+}
+
+.polaroid p {
+  margin-top: 0.75rem;
+  font-size: 1.1rem;
+  font-style: italic;
+}
+
+/* Mobile: 1 column */
+@media (max-width: 900px) {
   .photo-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive columns */
-    gap: 2rem;
-    justify-items: center;
-    margin: 2rem;
+    grid-template-columns: 1fr;
   }
+}
 
-  .polaroid {
-    background: #fff;
-    padding: 10px 10px 30px 10px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    text-align: center;
-    max-width: 400px; /* Increased from 250px */
-    width: 100%;
-    border: 1px solid #ddd;
-  }
-
-  .polaroid img {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-
-  .polaroid p {
-    margin-top: 0.5rem;
-    font-size: 1rem; /* Slightly bigger text */
-    font-style: italic;
-  }
 </style>
 
 </head>
