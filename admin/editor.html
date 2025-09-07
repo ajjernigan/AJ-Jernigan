@@ -6,10 +6,10 @@
   <title>Editor - AJ Jernigan</title>
   <link rel="stylesheet" href="../css/style.css" />
   <style>
+    section { margin-bottom: 2rem; }
     .photos-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem; }
     .photos-grid div { border: 1px solid #ccc; padding: 0.5rem; text-align: center; }
-    .photos-grid img { width: 100%; max-width: 200px; display: block; margin-bottom: 0.5rem; }
-    section { margin-bottom: 2rem; }
+    .photos-grid img { width: 100%; max-width: 400px; display: block; margin-bottom: 0.5rem; }
   </style>
 </head>
 <body>
@@ -142,7 +142,6 @@
         div.style.marginBottom = "0.5rem";
         div.contentEditable = true;
         div.textContent = review;
-        div.dataset.index = i;
 
         const deleteBtn = document.createElement("button");
         deleteBtn.textContent = "Delete";
@@ -206,7 +205,7 @@
     });
 
     // --- Photos Editor ---
-    let photosData = new Array(6).fill({url:"", caption:""});
+    let photosData = Array.from({length:6}, () => ({url:"", caption:""}));
 
     async function loadPhotosEditor() {
       const docRef = doc(db, "edits", "photos");
@@ -217,7 +216,7 @@
       photosData.forEach((item, i) => {
         const div = document.createElement("div");
         div.innerHTML = `
-          <img src="${item.url || 'https://via.placeholder.com/200'}" alt="Photo ${i+1}">
+          <img src="${item.url || 'https://via.placeholder.com/400'}" alt="Photo ${i+1}">
           <input type="file" id="photoFile${i}">
           <input type="text" id="photoCaption${i}" placeholder="Caption" value="${item.caption || ''}">
         `;
@@ -228,22 +227,27 @@
     savePhotosBtn.addEventListener("click", async () => {
       photosStatus.textContent = "Saving photos...";
       try {
-        for (let i=0; i<photosData.length; i++) {
+        for (let i=0;i<photosData.length;i++){
           const fileInput = document.getElementById(`photoFile${i}`);
           const captionInput = document.getElementById(`photoCaption${i}`);
-          if (fileInput.files[0]) {
+
+          let newUrl = photosData[i].url;
+          if (fileInput.files[0]){
             const formData = new FormData();
             formData.append("file", fileInput.files[0]);
-            formData.append("upload_preset", "aj_photos_upload");
-            const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload", {method:"POST", body:formData});
+            formData.append("upload_preset","aj_photos_upload");
+
+            const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload",{method:"POST",body:formData});
             const data = await res.json();
-            photosData[i].url = data.secure_url;
+            newUrl = data.secure_url;
           }
-          photosData[i].caption = captionInput.value;
+          // assign a new object to prevent all references pointing to same object
+          photosData[i] = {url: newUrl, caption: captionInput.value};
         }
-        await setDoc(doc(db, "edits", "photos"), { photos: photosData }, { merge: true });
+        await setDoc(doc(db, "edits", "photos"), {photos: photosData},{merge:true});
         photosStatus.textContent = "Photos saved!";
-      } catch(err) {
+        loadPhotosEditor();
+      } catch(err){
         console.error(err);
         photosStatus.textContent = "Error saving photos";
       }
