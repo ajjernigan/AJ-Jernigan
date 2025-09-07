@@ -29,32 +29,32 @@
 
 .photo-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 2 big columns */
-  gap: 3rem; /* space between photos */
+  grid-template-columns: repeat(2, 1fr); /* Always 2 columns */
+  gap: 2rem; /* space between photos */
   justify-items: center;
   margin: 2rem auto;
-  max-width: 1400px; /* keeps grid centered on large screens */
+  max-width: 1600px; /* wider container */
 }
 
 .polaroid {
   background: #fff;
-  padding: 15px 15px 40px 15px;
+  padding: 10px 10px 20px 10px; /* smaller bottom padding so less “polaroid” white space */
   box-shadow: 0 4px 8px rgba(0,0,0,0.2);
   text-align: center;
-  max-width: 650px;   /* bigger image container */
+  max-width: 700px;  /* bigger images */
   width: 100%;
   border: 1px solid #ddd;
 }
 
 .polaroid img {
-  width: 100%;   /* fills container */
+  width: 100%;
   height: auto;
   display: block;
 }
 
 .polaroid p {
-  margin-top: 0.75rem;
-  font-size: 1.1rem;
+  margin-top: 0.5rem;
+  font-size: 1rem;
   font-style: italic;
 }
 
