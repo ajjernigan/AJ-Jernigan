@@ -76,7 +76,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
     import { 
       getFirestore, doc, getDoc, setDoc,
-      collection, addDoc, getDocs, updateDoc, deleteDoc, query, orderBy 
+      collection, addDoc, getDocs, updateDoc, deleteDoc, query, orderBy, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
     import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
@@ -92,6 +92,10 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
+
+    // Cloudinary constants
+    const CLOUD_NAME = "dzktijdmh";
+    const UPLOAD_PRESET = "aj_photos_upload";
 
     // --- Elements ---
     const page = new URLSearchParams(window.location.search).get("page") || "index";
@@ -210,17 +214,21 @@
       try {
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("upload_preset", "aj_photos_upload");
+        formData.append("upload_preset", UPLOAD_PRESET);
 
-        const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload", { method: "POST", body: formData });
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: "POST", body: formData });
         const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error?.message || "Cloudinary upload failed");
+
         const url = data.secure_url;
+        if (!url) throw new Error("No secure_url returned from Cloudinary");
 
         await setDoc(doc(db, "edits", page), { headshotUrl: url }, { merge: true });
         headshotPreview.src = url;
         headshotStatus.textContent = "Upload successful!";
       } catch (err) {
-        console.error(err);
+        console.error("Headshot upload error:", err);
         headshotStatus.textContent = "Upload error: " + err.message;
       }
     });
@@ -275,19 +283,23 @@
       try {
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("upload_preset", "aj_photos_upload");
+        formData.append("upload_preset", aj_photos_upload);
 
-        const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload", {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${dzktijdmh}/image/upload`, {
           method: "POST",
           body: formData
         });
         const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error?.message || "Cloudinary upload failed");
+
         const url = data.secure_url;
+        if (!url) throw new Error("No secure_url returned from Cloudinary");
 
         await addDoc(collection(db, "photos"), {
           url,
           caption,
-          createdAt: new Date()
+          createdAt: serverTimestamp()
         });
 
         newPhotoInput.value = "";
@@ -295,8 +307,8 @@
         photosStatus.textContent = "Photo uploaded!";
         loadPhotosEditor();
       } catch (err) {
-        console.error(err);
-        photosStatus.textContent = "Error uploading photo.";
+        console.error("Photo upload error:", err);
+        photosStatus.textContent = "Error: " + err.message;
       }
     });
 
