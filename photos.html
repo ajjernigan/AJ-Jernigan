@@ -1,84 +1,117 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Photos - AJ Jernigan</title>
-  <link rel="stylesheet" href="css/style.css">
-  <style>
-    .photo-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 2rem;
-      justify-items: center;
-      margin: 2rem;
-    }
-    .polaroid {
-      background: #fff;
-      padding: 10px 10px 30px 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      text-align: center;
-      max-width: 250px;
-      border: 1px solid #ddd;
-    }
-    .polaroid img {
-      width: 100%;
-      display: block;
-    }
-    .polaroid p {
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
-      font-style: italic;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photos - AJ Jernigan</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+  nav ul.menu {
+    list-style: none;
+    display: flex;
+    gap: 1rem;
+    padding: 0;
+  }
+  nav ul.menu li a {
+    text-decoration: none;
+    font-weight: bold;
+    color: #333;
+  }
+  nav ul.menu li a:hover {
+    color: #007bff;
+  }
+
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    justify-items: center;
+    margin: 2rem;
+  }
+  .polaroid {
+    background: #fff;
+    padding: 10px 10px 30px 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    text-align: center;
+    max-width: 250px;
+    border: 1px solid #ddd;
+  }
+  .polaroid img {
+    width: 100%;
+    display: block;
+  }
+  .polaroid p {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    font-style: italic;
+  }
+</style>
 </head>
 <body>
-  <header>
-    <h1>AJ Jernigan – Photos</h1>
-  </header>
+<header>
+  <h1>AJ Jernigan – Photos</h1>
+  <nav>
+    <ul class="menu">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="resume.html">Resume</a></li>
+      <li><a href="photos.html">Photos</a></li>
+      <li><a href="videos.html">Videos</a></li>
+      <li><a href="voice-acting.html">Voice Acting</a></li>
+      <li><a href="writing.html">Writing</a></li>
+    </ul>
+  </nav>
+</header>
 
-  <main>
-    <section class="photo-grid" id="photoGrid"></section>
-  </main>
+<main>
+  <section class="photo-grid" id="photoGrid"></section>
+</main>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
-      authDomain: "aj-jernigan-site.firebaseapp.com",
-      projectId: "aj-jernigan-site",
-      storageBucket: "aj-jernigan-site.appspot.com",
-      messagingSenderId: "823081137921",
-      appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
+  authDomain: "aj-jernigan-site.firebaseapp.com",
+  projectId: "aj-jernigan-site",
+  storageBucket: "aj-jernigan-site.appspot.com",
+  messagingSenderId: "823081137921",
+  appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00"
+};
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-    async function loadPhotos() {
-      const docRef = doc(db, "edits", "photos");
-      const docSnap = await getDoc(docRef);
+async function loadPhotos() {
+  const docRef = doc(db, "edits", "photos");
+  const docSnap = await getDoc(docRef);
 
-      if (docSnap.exists()) {
-        const photos = docSnap.data().photos || [];
-        const grid = document.getElementById("photoGrid");
+  let photos = docSnap.exists() ? docSnap.data().photos || [] : [];
+  // Always show 6 slots
+  while (photos.length < 6) {
+    photos.push({ url: 'https://via.placeholder.com/250', caption: 'No caption' });
+  }
 
-        grid.innerHTML = "";
-        photos.forEach((item, i) => {
-          const div = document.createElement("div");
-          div.classList.add("polaroid");
-          div.innerHTML = `
-            <img src="${item.url || 'https://via.placeholder.com/250'}" alt="Photo ${i+1}">
-            <p>${item.caption || "No caption"}</p>
-          `;
-          grid.appendChild(div);
-        });
-      }
-    }
+  const grid = document.getElementById("photoGrid");
+  grid.innerHTML = "";
+  photos.forEach((item, i) => {
+    const div = document.createElement("div");
+    div.classList.add("polaroid");
+    div.innerHTML = `
+      <img src="${item.url}" alt="Photo ${i+1}">
+      <p>${item.caption}</p>
+    `;
+    grid.appendChild(div);
+  });
+}
 
-    loadPhotos();
-  </script>
+loadPhotos();
+</script>
 </body>
 </html>
