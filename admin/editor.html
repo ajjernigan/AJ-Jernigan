@@ -283,9 +283,10 @@
       try {
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("upload_preset", aj_photos_upload);
+        formData.append("upload_preset", UPLOAD_PRESET);
 
-        const res = await fetch(`https://api.cloudinary.com/v1_1/${dzktijdmh}/image/upload`, {
+
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
           method: "POST",
           body: formData
         });
