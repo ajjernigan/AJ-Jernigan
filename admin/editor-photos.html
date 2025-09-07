@@ -47,11 +47,13 @@
   </section>
 </main>
 
+<!-- Include image compression library -->
+<script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.1/dist/browser-image-compression.js"></script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-import imageCompression from 'https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.1/dist/browser-image-compression.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
@@ -75,7 +77,6 @@ const newPhotoCaption = document.getElementById("newPhotoCaption");
 const uploadPhotoBtn = document.getElementById("uploadPhotoBtn");
 const photosStatus = document.getElementById("photosStatus");
 const photosEditorGrid = document.getElementById("photosEditorGrid");
-
 const backBtn = document.getElementById("backBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 
@@ -132,7 +133,9 @@ uploadPhotoBtn.addEventListener("click", async () => {
   photosStatus.textContent = "Uploading...";
 
   try {
-    const compressedFile = await imageCompression(file, { maxSizeMB: 9, maxWidthOrHeight: 2000 });
+    // Use the global window.imageCompression
+    const compressedFile = await window.imageCompression(file, { maxSizeMB: 9, maxWidthOrHeight: 2000 });
+
     const formData = new FormData();
     formData.append("file", compressedFile);
     formData.append("upload_preset", UPLOAD_PRESET);
