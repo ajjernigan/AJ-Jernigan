@@ -7,9 +7,23 @@
   <link rel="stylesheet" href="../css/style.css" />
   <style>
     section { margin-bottom: 2rem; }
-    .photos-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem; }
-    .photos-grid div { border: 1px solid #ccc; padding: 0.5rem; text-align: center; }
-    .photos-grid img { width: 100%; max-width: 400px; display: block; margin-bottom: 0.5rem; }
+    .photos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .photos-grid div {
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+      text-align: center;
+    }
+    .photos-grid img {
+      width: 100%;
+      max-width: 400px;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -48,9 +62,11 @@
     <!-- Photos Editor -->
     <section id="photosSection">
       <h2>Photos</h2>
-      <div id="photosEditorGrid" class="photos-grid"></div>
-      <button id="savePhotosBtn">Save Photos</button>
+      <input type="file" id="newPhotoInput" accept="image/*">
+      <input type="text" id="newPhotoCaption" placeholder="Caption for new photo">
+      <button id="uploadPhotoBtn">Upload New Photo</button>
       <p id="photosStatus"></p>
+      <div id="photosEditorGrid" class="photos-grid"></div>
     </section>
   </main>
 
@@ -58,7 +74,10 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+    import { 
+      getFirestore, doc, getDoc, setDoc,
+      collection, addDoc, getDocs, updateDoc, deleteDoc, query, orderBy 
+    } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
     import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
     const firebaseConfig = {
@@ -99,7 +118,9 @@
     const addReviewBtn = document.getElementById("addReviewBtn");
 
     const photosEditorGrid = document.getElementById("photosEditorGrid");
-    const savePhotosBtn = document.getElementById("savePhotosBtn");
+    const newPhotoInput = document.getElementById("newPhotoInput");
+    const newPhotoCaption = document.getElementById("newPhotoCaption");
+    const uploadPhotoBtn = document.getElementById("uploadPhotoBtn");
     const photosStatus = document.getElementById("photosStatus");
 
     pageTitle.textContent = `Editing Page: ${page}`;
@@ -205,51 +226,77 @@
     });
 
     // --- Photos Editor ---
-    let photosData = Array.from({length:6}, () => ({url:"", caption:""}));
-
     async function loadPhotosEditor() {
-      const docRef = doc(db, "edits", "photos");
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) photosData = docSnap.data().photos || photosData;
+      const q = query(collection(db, "photos"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
 
       photosEditorGrid.innerHTML = "";
-      photosData.forEach((item, i) => {
+      snap.forEach(docSnap => {
+        const item = docSnap.data();
+        const id = docSnap.id;
+
         const div = document.createElement("div");
         div.innerHTML = `
-          <img src="${item.url || 'https://via.placeholder.com/400'}" alt="Photo ${i+1}">
-          <input type="file" id="photoFile${i}">
-          <input type="text" id="photoCaption${i}" placeholder="Caption" value="${item.caption || ''}">
+          <img src="${item.url}" alt="Photo">
+          <input type="text" value="${item.caption || ''}" id="caption-${id}" placeholder="Edit caption">
+          <button data-id="${id}" class="saveCaptionBtn">Save Caption</button>
+          <button data-id="${id}" class="deletePhotoBtn">Delete</button>
         `;
         photosEditorGrid.appendChild(div);
       });
+
+      // Caption save listeners
+      document.querySelectorAll(".saveCaptionBtn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.id;
+          const caption = document.getElementById(`caption-${id}`).value;
+          await updateDoc(doc(db, "photos", id), { caption });
+          photosStatus.textContent = "Caption updated!";
+        });
+      });
+
+      // Delete listeners
+      document.querySelectorAll(".deletePhotoBtn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.id;
+          await deleteDoc(doc(db, "photos", id));
+          loadPhotosEditor();
+        });
+      });
     }
 
-    savePhotosBtn.addEventListener("click", async () => {
-      photosStatus.textContent = "Saving photos...";
+    uploadPhotoBtn.addEventListener("click", async () => {
+      const file = newPhotoInput.files[0];
+      const caption = newPhotoCaption.value;
+      if (!file) return alert("Please select a photo!");
+
+      photosStatus.textContent = "Uploading...";
+
       try {
-        for (let i=0;i<photosData.length;i++){
-          const fileInput = document.getElementById(`photoFile${i}`);
-          const captionInput = document.getElementById(`photoCaption${i}`);
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", "aj_photos_upload");
 
-          let newUrl = photosData[i].url;
-          if (fileInput.files[0]){
-            const formData = new FormData();
-            formData.append("file", fileInput.files[0]);
-            formData.append("upload_preset","aj_photos_upload");
+        const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload", {
+          method: "POST",
+          body: formData
+        });
+        const data = await res.json();
+        const url = data.secure_url;
 
-            const res = await fetch("https://api.cloudinary.com/v1_1/dzktijdmh/image/upload",{method:"POST",body:formData});
-            const data = await res.json();
-            newUrl = data.secure_url;
-          }
-          // assign a new object to prevent all references pointing to same object
-          photosData[i] = {url: newUrl, caption: captionInput.value};
-        }
-        await setDoc(doc(db, "edits", "photos"), {photos: photosData},{merge:true});
-        photosStatus.textContent = "Photos saved!";
+        await addDoc(collection(db, "photos"), {
+          url,
+          caption,
+          createdAt: new Date()
+        });
+
+        newPhotoInput.value = "";
+        newPhotoCaption.value = "";
+        photosStatus.textContent = "Photo uploaded!";
         loadPhotosEditor();
-      } catch(err){
+      } catch (err) {
         console.error(err);
-        photosStatus.textContent = "Error saving photos";
+        photosStatus.textContent = "Error uploading photo.";
       }
     });
 
