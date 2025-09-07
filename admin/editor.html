@@ -104,3 +104,131 @@
     const logoutBtn = document.getElementById("logoutBtn");
     const headshotSection = document.getElementById("headshotSection");
    
+    async function loadReviews(reviews) {
+      reviewsList.innerHTML = "";
+      reviews.forEach((review, i) => {
+        const div = document.createElement("div");
+        div.style.border = "1px solid #ccc";
+        div.style.padding = "0.5rem";
+        div.style.marginBottom = "0.5rem";
+        div.contentEditable = true;
+        div.textContent = review;
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.style.marginLeft = "1rem";
+        deleteBtn.addEventListener("click", async () => {
+          reviews.splice(i, 1);
+          await setDoc(doc(db, "edits", page), { reviews }, { merge: true });
+          loadReviews(reviews);
+        });
+
+        div.addEventListener("blur", async () => {
+          reviews[i] = div.textContent;
+          await setDoc(doc(db, "edits", page), { reviews }, { merge: true });
+        });
+
+        div.appendChild(deleteBtn);
+        reviewsList.appendChild(div);
+      });
+    }
+
+    addReviewBtn.addEventListener("click", async () => {
+      if (page !== "index") return;
+      const reviewText = newReview.value.trim();
+      if (!reviewText) return;
+      const docRef = doc(db, "edits", page);
+      const docSnap = await getDoc(docRef);
+      const reviews = docSnap.exists() ? docSnap.data().reviews || [] : [];
+      reviews.push(reviewText);
+      await setDoc(doc(db, "edits", page), { reviews }, { merge: true });
+      newReview.value = "";
+      loadReviews(reviews);
+    });
+
+    // --- Photos Editor ---
+    async function loadPhotosEditor() {
+      const q = query(collection(db, "photos"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+
+      photosEditorGrid.innerHTML = "";
+      snap.forEach(docSnap => {
+        const item = docSnap.data();
+        const id = docSnap.id;
+
+        const div = document.createElement("div");
+        div.innerHTML = `
+          <img src="${item.url}" alt="Photo">
+          <input type="text" value="${item.caption || ''}" id="caption-${id}" placeholder="Edit caption">
+          <button data-id="${id}" class="saveCaptionBtn">Save Caption</button>
+          <button data-id="${id}" class="deletePhotoBtn">Delete</button>
+        `;
+        photosEditorGrid.appendChild(div);
+      });
+
+      document.querySelectorAll(".saveCaptionBtn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.id;
+          const caption = document.getElementById(`caption-${id}`).value;
+          await updateDoc(doc(db, "photos", id), { caption });
+          photosStatus.textContent = "Caption updated!";
+        });
+      });
+
+      document.querySelectorAll(".deletePhotoBtn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const id = btn.dataset.id;
+          await deleteDoc(doc(db, "photos", id));
+          loadPhotosEditor();
+        });
+      });
+    }
+
+    // --- Photo Upload ---
+    uploadPhotoBtn.addEventListener("click", async () => {
+      if (page !== "photos") return;
+      const file = newPhotoInput.files[0];
+      const caption = newPhotoCaption.value;
+      if (!file) return alert("Select a photo!");
+      photosStatus.textContent = "Uploading...";
+
+      try {
+        const compressedFile = await imageCompression(file, { maxSizeMB: 9, maxWidthOrHeight: 2000 });
+        const formData = new FormData();
+        formData.append("file", compressedFile);
+        formData.append("upload_preset", UPLOAD_PRESET);
+
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+          method: "POST",
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || "Upload failed");
+
+        const url = data.secure_url;
+        await addDoc(collection(db, "photos"), {
+          url,
+          caption,
+          createdAt: serverTimestamp()
+        });
+
+        newPhotoInput.value = "";
+        newPhotoCaption.value = "";
+        photosStatus.textContent = "Photo uploaded!";
+        loadPhotosEditor();
+      } catch (err) {
+        console.error("Photo upload error:", err);
+        photosStatus.textContent = "Error: " + err.message;
+      }
+    });
+
+    // --- Logout ---
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "login.html";
+    });
+
+    loadContent();
+  </script>
+</body>
+</html>
