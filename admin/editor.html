@@ -9,6 +9,7 @@
     .photos-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem; }
     .photos-grid div { border: 1px solid #ccc; padding: 0.5rem; text-align: center; }
     .photos-grid img { width: 100%; max-width: 200px; display: block; margin-bottom: 0.5rem; }
+    section { margin-bottom: 2rem; }
   </style>
 </head>
 <body>
@@ -20,7 +21,7 @@
 
   <main>
     <!-- Headshot Upload -->
-    <section>
+    <section id="headshotSection">
       <h2>Headshot</h2>
       <img id="headshotPreview" src="" alt="Current Headshot" style="max-width:200px; display:block; margin-bottom:1rem;">
       <input type="file" id="headshotInput" accept="image/*">
@@ -29,7 +30,7 @@
     </section>
 
     <!-- Intro Text -->
-    <section>
+    <section id="introSection">
       <h2>Intro Text</h2>
       <textarea id="editorArea" rows="20" cols="80"></textarea>
       <button id="saveBtn">Save Changes</button>
@@ -37,7 +38,7 @@
     </section>
 
     <!-- Informal Reviews -->
-    <section class="reviewsArea">
+    <section class="reviewsArea" id="reviewsSection">
       <h2>Informal Reviews</h2>
       <div id="reviewsList"></div>
       <textarea id="newReview" rows="3" placeholder="Add a new review"></textarea>
@@ -45,7 +46,7 @@
     </section>
 
     <!-- Photos Editor -->
-    <section>
+    <section id="photosSection">
       <h2>Photos</h2>
       <div id="photosEditorGrid" class="photos-grid"></div>
       <button id="savePhotosBtn">Save Photos</button>
@@ -79,6 +80,11 @@
     const backBtn = document.getElementById("backBtn");
     const logoutBtn = document.getElementById("logoutBtn");
 
+    const headshotSection = document.getElementById("headshotSection");
+    const introSection = document.getElementById("introSection");
+    const reviewsSection = document.getElementById("reviewsSection");
+    const photosSection = document.getElementById("photosSection");
+
     const editorArea = document.getElementById("editorArea");
     const saveBtn = document.getElementById("saveBtn");
     const saveStatus = document.getElementById("saveStatus");
@@ -99,14 +105,19 @@
     pageTitle.textContent = `Editing Page: ${page}`;
 
     // Auth check
-    onAuthStateChanged(auth, user => {
-      if (!user) window.location.href = "login.html";
-    });
+    onAuthStateChanged(auth, user => { if (!user) window.location.href = "login.html"; });
 
     // Back to dashboard
-    backBtn.addEventListener("click", () => {
-      window.location.href = "dashboard.html";
-    });
+    backBtn.addEventListener("click", () => window.location.href = "dashboard.html");
+
+    // --- Show/hide sections based on page ---
+    function updateSections() {
+      headshotSection.style.display = page === "index" ? "block" : "none";
+      introSection.style.display = (page === "index" || page === "resume") ? "block" : "none";
+      reviewsSection.style.display = page === "index" ? "block" : "none";
+      photosSection.style.display = page === "photos" ? "block" : "none";
+    }
+    updateSections();
 
     // --- Load Page Content ---
     async function loadContent() {
@@ -114,11 +125,10 @@
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
-        editorArea.value = data.introText || "";
-        if (data.headshotUrl) headshotPreview.src = data.headshotUrl;
-        loadReviews(data.reviews || []);
+        if (page === "index" || page === "resume") editorArea.value = data.introText || "";
+        if (page === "index" && data.headshotUrl) headshotPreview.src = data.headshotUrl;
+        if (page === "index") loadReviews(data.reviews || []);
       }
-
       if (page === "photos") loadPhotosEditor();
     }
 
@@ -231,7 +241,6 @@
           }
           photosData[i].caption = captionInput.value;
         }
-
         await setDoc(doc(db, "edits", "photos"), { photos: photosData }, { merge: true });
         photosStatus.textContent = "Photos saved!";
       } catch(err) {
