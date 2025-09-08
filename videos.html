@@ -6,35 +6,53 @@
 <title>Videos - AJ Jernigan</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
-  main { padding: 2rem; max-width: 900px; margin: 0 auto; }
+  main { padding: 2rem; }
   h1 { text-align: center; margin-bottom: 2rem; }
-  .video-card {
-    margin-bottom: 2rem;
-    text-align: center;
+
+  .videos-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    align-items: center;
   }
-.video-card iframe,
-.video-card img {
-  width: 90%;
-  max-width: 1200px; /* optional max width */
-  height: calc(90% * 9 / 16); /* maintain 16:9 aspect ratio */
-  border-radius: 8px;
-  display: block;
-  margin: 0 auto;
-}
-.play-btn {
-  font-size: 80px;
-}
+
+  .video-card {
+    width: 90%;
+    max-width: 1000px;
+  }
+
+  .video-wrapper {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 ratio */
+  }
+
+  .video-wrapper iframe,
+  .video-wrapper img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+  }
+
+  .play-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 80px;
+    color: white;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    pointer-events: none;
+  }
 
   .caption {
+    text-align: center;
     margin-top: 0.5rem;
     font-style: italic;
     color: #444;
-    font-size: 1.1rem;
-  }
-
-  .thumbnail-wrapper {
-    position: relative;
-    display: inline-block;
   }
 </style>
 </head>
@@ -53,7 +71,9 @@
   </nav>
 </header>
 
-<main id="videosGrid"></main>
+<main>
+  <div id="videosGrid" class="videos-grid"></div>
+</main>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
@@ -79,42 +99,38 @@ function extractYouTubeID(url) {
 }
 
 async function loadVideos() {
-  try {
-    const q = query(collection(db, "videos"), orderBy("createdAt", "desc"));
-    const snap = await getDocs(q);
-    videosGrid.innerHTML = "";
+  const q = query(collection(db, "videos"), orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  videosGrid.innerHTML = "";
 
-    snap.forEach(docSnap => {
-      const data = docSnap.data();
-      if (!data.url) return;
-      const videoId = extractYouTubeID(data.url);
-      if (!videoId) return;
+  snap.forEach(docSnap => {
+    const data = docSnap.data();
+    const videoId = extractYouTubeID(data.url);
+    if (!videoId) return;
 
-      const div = document.createElement("div");
-      div.className = "video-card";
+    const div = document.createElement("div");
+    div.className = "video-card";
 
+    div.innerHTML = `
+      <div class="video-wrapper">
+        <img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" alt="Video Thumbnail">
+        <div class="play-btn">▶</div>
+      </div>
+      <div class="caption">${data.caption || ""}</div>
+    `;
+
+    const thumbnail = div.querySelector("img");
+    thumbnail.addEventListener("click", () => {
       div.innerHTML = `
-        <div class="thumbnail-wrapper">
-          <img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" alt="Video Thumbnail">
-          <div class="play-btn">▶</div>
-        </div>
-        <div class="caption">${data.title || ""}</div>
-      `;
-
-      const thumbnail = div.querySelector("img");
-      thumbnail.addEventListener("click", () => {
-        div.innerHTML = `
+        <div class="video-wrapper">
           <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
-          <div class="caption">${data.title || ""}</div>
-        `;
-      });
-
-      videosGrid.appendChild(div);
+        </div>
+        <div class="caption">${data.caption || ""}</div>
+      `;
     });
-  } catch (err) {
-    console.error("Error loading videos:", err);
-    videosGrid.innerHTML = "<p>Error loading videos. Check console.</p>";
-  }
+
+    videosGrid.appendChild(div);
+  });
 }
 
 loadVideos();
