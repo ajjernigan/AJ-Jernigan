@@ -6,43 +6,44 @@
 <title>Videos - AJ Jernigan</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
-  main { padding: 2rem; }
+  main { padding: 2rem; max-width: 900px; margin: 0 auto; }
   h1 { text-align: center; margin-bottom: 2rem; }
-  .videos-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 1.5rem;
-  }
   .video-card {
-    border: 1px solid #ccc;
-    padding: 0.5rem;
+    margin-bottom: 2rem;
     text-align: center;
-    position: relative;
-  }
-  .video-card img {
-    width: 100%;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-  .play-btn {
-    position: absolute;
-    top: 40%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 48px;
-    color: white;
-    text-shadow: 0 2px 6px rgba(0,0,0,0.5);
-    pointer-events: none;
   }
   .video-card iframe {
-    width: 100%;
-    height: 200px;
-    margin-bottom: 0.5rem;
+    width: 80%;
+    max-width: 800px;
+    height: 450px;
+    border: none;
+    border-radius: 8px;
   }
   .caption {
     margin-top: 0.5rem;
     font-style: italic;
     color: #444;
+    font-size: 1.1rem;
+  }
+  .video-card img {
+    width: 80%;
+    max-width: 800px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .play-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 64px;
+    color: white;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    pointer-events: none;
+  }
+  .thumbnail-wrapper {
+    position: relative;
+    display: inline-block;
   }
 </style>
 </head>
@@ -61,9 +62,7 @@
   </nav>
 </header>
 
-<main>
-  <div id="videosGrid" class="videos-grid"></div>
-</main>
+<main id="videosGrid"></main>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
@@ -102,13 +101,17 @@ async function loadVideos() {
 
       const div = document.createElement("div");
       div.className = "video-card";
+
       div.innerHTML = `
-        <img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" alt="Video Thumbnail">
-        <div class="play-btn">▶</div>
+        <div class="thumbnail-wrapper">
+          <img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" alt="Video Thumbnail">
+          <div class="play-btn">▶</div>
+        </div>
         <div class="caption">${data.title || ""}</div>
       `;
 
-      div.querySelector("img").addEventListener("click", () => {
+      const thumbnail = div.querySelector("img");
+      thumbnail.addEventListener("click", () => {
         div.innerHTML = `
           <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
           <div class="caption">${data.title || ""}</div>
