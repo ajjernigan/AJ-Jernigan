@@ -171,10 +171,10 @@ async function loadVideos() {
       <div class="play-btn">▶</div>
     `;
 
-    // caption div
+    // caption div (now using 'title' from Firestore)
     const captionDiv = document.createElement("div");
     captionDiv.className = "caption";
-    captionDiv.textContent = data.caption || "";
+    captionDiv.textContent = data.title || "";
 
     // click to replace thumbnail with iframe
     const thumbnail = wrapper.querySelector("img");
