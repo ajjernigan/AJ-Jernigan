@@ -1,100 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Video Editor</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    .video-container { display: flex; flex-wrap: wrap; gap: 20px; }
-    .video-item { width: 320px; }
-    iframe { width: 100%; height: 180px; border: none; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Videos Editor - AJ Jernigan</title>
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  section { margin-bottom: 2rem; }
+  .videos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  .videos-grid div {
+    border: 1px solid #ccc;
+    padding: 0.5rem;
+    text-align: center;
+  }
+  iframe {
+    width: 100%;
+    height: 180px;
+    margin-bottom: 0.5rem;
+  }
+</style>
 </head>
 <body>
-  <h1>Manage Videos</h1>
+<header>
+  <h1>Editing Videos</h1>
+  <button id="backBtn">Back to Dashboard</button>
+  <button id="logoutBtn">Logout</button>
+</header>
 
-  <div>
-    <input type="text" id="newVideoUrl" placeholder="Paste YouTube link" size="50" />
-    <input type="text" id="newVideoCaption" placeholder="Caption (optional)" size="30" />
+<main>
+  <section>
+    <h2>Add New Video</h2>
+    <input type="text" id="newVideoUrl" placeholder="YouTube link">
+    <input type="text" id="newVideoTitle" placeholder="Video Title">
     <button id="addVideoBtn">Add Video</button>
-  </div>
+    <p id="videosStatus"></p>
+  </section>
 
-  <h2>Current Videos</h2>
-  <div id="videosContainer" class="video-container"></div>
+  <section>
+    <h2>Existing Videos</h2>
+    <div id="videosGrid" class="videos-grid"></div>
+  </section>
+</main>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { 
-      getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, serverTimestamp 
-    } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
-    // --- Firebase init ---
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+const firebaseConfig = {
+  apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
+  authDomain: "aj-jernigan-site.firebaseapp.com",
+  projectId: "aj-jernigan-site",
+  storageBucket: "aj-jernigan-site.appspot.com",
+  messagingSenderId: "823081137921",
+  appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00"
+};
 
-    // --- DOM ---
-    const addVideoBtn = document.getElementById("addVideoBtn");
-    const newVideoUrl = document.getElementById("newVideoUrl");
-    const newVideoCaption = document.getElementById("newVideoCaption");
-    const videosContainer = document.getElementById("videosContainer");
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-    // --- Helper to extract YouTube ID ---
-    function getYouTubeId(url) {
-      const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-      return match ? match[1] : null;
-    }
+// Elements
+const backBtn = document.getElementById("backBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const newVideoUrl = document.getElementById("newVideoUrl");
+const newVideoTitle = document.getElementById("newVideoTitle");
+const addVideoBtn = document.getElementById("addVideoBtn");
+const videosStatus = document.getElementById("videosStatus");
+const videosGrid = document.getElementById("videosGrid");
 
-    // --- Add video ---
-    addVideoBtn.addEventListener("click", async () => {
-      const rawUrl = newVideoUrl.value.trim();
-      const caption = newVideoCaption.value.trim();
-      const videoId = getYouTubeId(rawUrl);
+// Auth & navigation
+onAuthStateChanged(auth, user => {
+  if(!user) window.location.href = "login.html";
+  else loadVideos();
+});
 
-      if (!videoId) {
-        alert("Invalid YouTube link. Please paste a valid video URL.");
-        return;
-      }
+backBtn.addEventListener("click", () => window.location.href = "dashboard.html");
+logoutBtn.addEventListener("click", async () => { await signOut(auth); window.location.href = "login.html"; });
 
-      try {
-        await addDoc(collection(db, "videos"), {
-          videoId: videoId,
-          caption: caption || "",
-          createdAt: serverTimestamp()
-        });
-        newVideoUrl.value = "";
-        newVideoCaption.value = "";
-      } catch (err) {
-        console.error("Error adding video:", err);
-        alert("Failed to add video.");
-      }
+// Helper to extract YouTube video ID
+function getYouTubeID(url) {
+  const match = url.match(/[?&]v=([^&]+)/);
+  return match ? match[1] : null;
+}
+
+// Load existing videos
+async function loadVideos() {
+  const q = query(collection(db, "videos"), orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  videosGrid.innerHTML = "";
+
+  snap.forEach(docSnap => {
+    const data = docSnap.data();
+    const id = docSnap.id;
+    const videoId = getYouTubeID(data.url);
+    if(!videoId) return;
+
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
+      <input type="text" value="${data.title || ''}" id="title-${id}" placeholder="Edit title">
+      <button data-id="${id}" class="saveTitleBtn">Save Title</button>
+      <button data-id="${id}" class="deleteVideoBtn">Delete</button>
+    `;
+    videosGrid.appendChild(div);
+  });
+
+  // Save title listeners
+  document.querySelectorAll(".saveTitleBtn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      const title = document.getElementById(`title-${id}`).value;
+      await updateDoc(doc(db, "videos", id), { title });
+      videosStatus.textContent = "Title updated!";
     });
+  });
 
-    // --- Listen for updates ---
-    onSnapshot(collection(db, "videos"), (snapshot) => {
-      videosContainer.innerHTML = "";
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        const videoDiv = document.createElement("div");
-        videoDiv.className = "video-item";
-        videoDiv.innerHTML = `
-          <iframe src="https://www.youtube.com/embed/${data.videoId}" allowfullscreen></iframe>
-          <p>${data.caption || ""}</p>
-          <button data-id="${docSnap.id}">Delete</button>
-        `;
-        videoDiv.querySelector("button").addEventListener("click", async () => {
-          await deleteDoc(doc(db, "videos", docSnap.id));
-        });
-        videosContainer.appendChild(videoDiv);
-      });
+  // Delete listeners
+  document.querySelectorAll(".deleteVideoBtn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      await deleteDoc(doc(db, "videos", id));
+      loadVideos();
     });
-  </script>
+  });
+}
+
+// Add new video
+addVideoBtn.addEventListener("click", async () => {
+  const url = newVideoUrl.value.trim();
+  const title = newVideoTitle.value.trim();
+  const videoId = getYouTubeID(url);
+
+  if(!url || !title) return alert("Please provide both URL and title.");
+  if(!videoId) return alert("Invalid YouTube URL.");
+
+  videosStatus.textContent = "Adding video...";
+
+  try {
+    await addDoc(collection(db, "videos"), {
+      url,
+      title,
+      createdAt: new Date()
+    });
+    newVideoUrl.value = "";
+    newVideoTitle.value = "";
+    videosStatus.textContent = "Video added!";
+    loadVideos();
+  } catch(e) {
+    console.error("Error adding video:", e);
+    videosStatus.textContent = "Error: " + e.message;
+  }
+});
+</script>
 </body>
 </html>
