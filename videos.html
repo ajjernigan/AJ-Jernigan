@@ -1,45 +1,117 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Videos - AJ Jernigan</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    main { padding: 2rem; }
+    h1 { text-align: center; margin-bottom: 2rem; }
+    .videos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 1.5rem;
+    }
+    .video-card {
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+      text-align: center;
+      position: relative;
+    }
+    .video-card img {
+      width: 100%;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .play-btn {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      color: white;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+    .video-card iframe {
+      width: 100%;
+      height: 200px;
+      margin-bottom: 0.5rem;
+    }
+    .caption {
+      margin-top: 0.5rem;
+      font-style: italic;
+      color: #444;
+    }
+  </style>
 </head>
 <body>
   <header>
-    <div class="logo">AJ Jernigan</div>
-    <nav>
-      <ul>
-        <li><a href="index.html">Home</a></li>
-        <li><a href="resume.html">Resume</a></li>
-        <li><a href="photos.html">Photos</a></li>
-        <li><a href="videos.html">Videos</a></li>
-        <li><a href="voice-acting.html">Voice Acting</a></li>
-        <li><a href="writing.html">Writing</a></li>
-        <li><a href="contact.html">Contact AJ</a></li>
-      </ul>
-    </nav>
+    <h1>Videos</h1>
   </header>
 
   <main>
-    <section class="content">
-      <div id="pageContent"></div>
-    </section>
+    <div id="videosGrid" class="videos-grid"></div>
   </main>
 
-  <footer>
-    <div class="social-icons">
-      <a href="#">Instagram</a>
-      <a href="#">Bluesky</a>
-      <a href="#">YouTube</a>
-    </div>
-    <p>&copy; 2025 AJ Jernigan</p>
-  </footer>
-
   <script type="module">
-    import { loadPageContent } from "./js/content-loader.js";
-    loadPageContent("videos", "pageContent");
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
+      authDomain: "aj-jernigan-site.firebaseapp.com",
+      projectId: "aj-jernigan-site",
+      storageBucket: "aj-jernigan-site.appspot.com",
+      messagingSenderId: "823081137921",
+      appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const videosGrid = document.getElementById("videosGrid");
+
+    function extractYouTubeID(url) {
+      const regExp = /^.*(?:youtu.be\/|v\/|u\/\w\/|embed\/|watch\\?v=)([^#&?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[1].length === 11) ? match[1] : null;
+    }
+
+    async function loadVideos() {
+      const q = query(collection(db, "videos"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+      videosGrid.innerHTML = "";
+
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
+        const videoId = extractYouTubeID(data.url);
+        if (!videoId) return;
+
+        const div = document.createElement("div");
+        div.className = "video-card";
+
+        div.innerHTML = `
+          <img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" alt="Video Thumbnail">
+          <div class="play-btn">▶</div>
+          <div class="caption">${data.caption || ""}</div>
+        `;
+
+        // Replace with iframe when clicked
+        const thumbnail = div.querySelector("img");
+        thumbnail.addEventListener("click", () => {
+          div.innerHTML = `
+            <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
+            <div class="caption">${data.caption || ""}</div>
+          `;
+        });
+
+        videosGrid.appendChild(div);
+      });
+    }
+
+    loadVideos();
   </script>
 </body>
 </html>
