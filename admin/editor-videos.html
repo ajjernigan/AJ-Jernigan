@@ -1,192 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Videos Editor - AJ Jernigan</title>
-  <link rel="stylesheet" href="../css/style.css">
+  <meta charset="UTF-8" />
+  <title>Video Editor</title>
   <style>
-    section { margin-bottom: 2rem; }
-    .videos-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 1.5rem;
-    }
-    .video-card {
-      border: 1px solid #ccc;
-      padding: 0.5rem;
-      text-align: center;
-      position: relative;
-    }
-    .video-card img {
-      width: 100%;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .play-btn {
-      position: absolute;
-      top: 40%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 48px;
-      color: white;
-      text-shadow: 0 2px 6px rgba(0,0,0,0.5);
-      pointer-events: none;
-    }
-    .video-card iframe {
-      width: 100%;
-      height: 200px;
-      margin-bottom: 0.5rem;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .video-container { display: flex; flex-wrap: wrap; gap: 20px; }
+    .video-item { width: 320px; }
+    iframe { width: 100%; height: 180px; border: none; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Editing Videos</h1>
-    <button id="backBtn">Back to Dashboard</button>
-    <button id="logoutBtn">Logout</button>
-  </header>
+  <h1>Manage Videos</h1>
 
-  <main>
-    <section>
-      <h2>Add New Video</h2>
-      <input type="text" id="newVideoUrl" placeholder="YouTube URL">
-      <input type="text" id="newVideoCaption" placeholder="Caption for video">
-      <button id="addVideoBtn">Add Video</button>
-      <p id="videosStatus"></p>
-    </section>
+  <div>
+    <input type="text" id="newVideoUrl" placeholder="Paste YouTube link" size="50" />
+    <input type="text" id="newVideoCaption" placeholder="Caption (optional)" size="30" />
+    <button id="addVideoBtn">Add Video</button>
+  </div>
 
-    <section>
-      <h2>Existing Videos</h2>
-      <div id="videosEditorGrid" class="videos-grid"></div>
-    </section>
-  </main>
+  <h2>Current Videos</h2>
+  <div id="videosContainer" class="video-container"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
-    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+    import { 
+      getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
+    // --- Firebase init ---
     const firebaseConfig = {
-      apiKey: "AIzaSyA3AuU1ZUK23LqewXhUPLeC_q3BG6mBN2I",
-      authDomain: "aj-jernigan-site.firebaseapp.com",
-      projectId: "aj-jernigan-site",
-      storageBucket: "aj-jernigan-site.appspot.com",
-      messagingSenderId: "823081137921",
-      appId: "1:823081137921:web:8dc8a9d7fdddbf49048d00"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
-
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const auth = getAuth(app);
 
-    // Elements
+    // --- DOM ---
+    const addVideoBtn = document.getElementById("addVideoBtn");
     const newVideoUrl = document.getElementById("newVideoUrl");
     const newVideoCaption = document.getElementById("newVideoCaption");
-    const addVideoBtn = document.getElementById("addVideoBtn");
-    const videosStatus = document.getElementById("videosStatus");
-    const videosEditorGrid = document.getElementById("videosEditorGrid");
-    const backBtn = document.getElementById("backBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
+    const videosContainer = document.getElementById("videosContainer");
 
-    // Auth & navigation
-    onAuthStateChanged(auth, user => { if(!user) window.location.href = "login.html"; });
-    backBtn.addEventListener("click", () => window.location.href = "dashboard.html");
-    logoutBtn.addEventListener("click", async () => { await signOut(auth); window.location.href = "login.html"; });
-
-    // Extract YouTube ID
-function extractYouTubeID(url) {
-  const regExp = /^.*(?:youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[1].length === 11) ? match[1] : null;
-}
-
-
-    // Load videos
-    async function loadVideos() {
-      const q = query(collection(db, "videos"), orderBy("createdAt", "desc"));
-      const snap = await getDocs(q);
-
-      videosEditorGrid.innerHTML = "";
-      snap.forEach(docSnap => {
-        const data = docSnap.data();
-        const id = docSnap.id;
-        const videoId = extractYouTubeID(data.url);
-        if (!videoId) return;
-
-        const div = document.createElement("div");
-        div.className = "video-card";
-
-        div.innerHTML = `
-          <img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" alt="Video Thumbnail">
-          <div class="play-btn">▶</div>
-          <input type="text" value="${data.caption || ''}" id="caption-${id}" placeholder="Edit caption">
-          <button data-id="${id}" class="saveCaptionBtn">Save Caption</button>
-          <button data-id="${id}" class="deleteVideoBtn">Delete</button>
-        `;
-
-        // Click thumbnail → swap with iframe
-        const thumbnail = div.querySelector("img");
-        thumbnail.addEventListener("click", () => {
-          div.innerHTML = `
-            <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe>
-            <input type="text" value="${data.caption || ''}" id="caption-${id}" placeholder="Edit caption">
-            <button data-id="${id}" class="saveCaptionBtn">Save Caption</button>
-            <button data-id="${id}" class="deleteVideoBtn">Delete</button>
-          `;
-          attachEditorActions(div, id);
-        });
-
-        videosEditorGrid.appendChild(div);
-        attachEditorActions(div, id);
-      });
+    // --- Helper to extract YouTube ID ---
+    function getYouTubeId(url) {
+      const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      return match ? match[1] : null;
     }
 
-    // Attach save/delete actions
-    function attachEditorActions(div, id) {
-      const saveBtn = div.querySelector(".saveCaptionBtn");
-      const deleteBtn = div.querySelector(".deleteVideoBtn");
-
-      if (saveBtn) {
-        saveBtn.addEventListener("click", async () => {
-          const caption = document.getElementById(`caption-${id}`).value;
-          await updateDoc(doc(db, "videos", id), { caption });
-          videosStatus.textContent = "Caption updated!";
-        });
-      }
-
-      if (deleteBtn) {
-        deleteBtn.addEventListener("click", async () => {
-          await deleteDoc(doc(db, "videos", id));
-          loadVideos();
-        });
-      }
-    }
-
-    // Add new video
+    // --- Add video ---
     addVideoBtn.addEventListener("click", async () => {
-      const url = newVideoUrl.value.trim();
+      const rawUrl = newVideoUrl.value.trim();
       const caption = newVideoCaption.value.trim();
-      const videoId = extractYouTubeID(url);
-      if (!url || !videoId) return alert("Enter a valid YouTube URL!");
+      const videoId = getYouTubeId(rawUrl);
+
+      if (!videoId) {
+        alert("Invalid YouTube link. Please paste a valid video URL.");
+        return;
+      }
 
       try {
         await addDoc(collection(db, "videos"), {
-          url,
-          caption,
+          videoId: videoId,
+          caption: caption || "",
           createdAt: serverTimestamp()
         });
         newVideoUrl.value = "";
         newVideoCaption.value = "";
-        videosStatus.textContent = "Video added!";
-        loadVideos();
-      } catch (e) {
-        console.error("Error adding video:", e);
-        videosStatus.textContent = "Error: " + e.message;
+      } catch (err) {
+        console.error("Error adding video:", err);
+        alert("Failed to add video.");
       }
     });
 
-    loadVideos();
+    // --- Listen for updates ---
+    onSnapshot(collection(db, "videos"), (snapshot) => {
+      videosContainer.innerHTML = "";
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const videoDiv = document.createElement("div");
+        videoDiv.className = "video-item";
+        videoDiv.innerHTML = `
+          <iframe src="https://www.youtube.com/embed/${data.videoId}" allowfullscreen></iframe>
+          <p>${data.caption || ""}</p>
+          <button data-id="${docSnap.id}">Delete</button>
+        `;
+        videoDiv.querySelector("button").addEventListener("click", async () => {
+          await deleteDoc(doc(db, "videos", docSnap.id));
+        });
+        videosContainer.appendChild(videoDiv);
+      });
+    });
   </script>
 </body>
 </html>
